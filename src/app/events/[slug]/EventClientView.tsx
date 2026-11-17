@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { BorderBeam } from "@/components/ui/border-beam";
 import {
   Calendar,
   Clock,
@@ -91,6 +92,7 @@ export default function EventClientView({ event }: EventClientViewProps) {
             {/* Right Large Cover Photo */}
             <div className="lg:col-span-5">
               <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-neutral-900">
+                <BorderBeam size={220} duration={8} colorFrom="#E53935" colorTo="#FFA000" />
                 <Image
                   src={event.coverImage}
                   alt={event.title}
@@ -260,7 +262,8 @@ export default function EventClientView({ event }: EventClientViewProps) {
 
           {/* Right Column: Sticky Booking Card (Desktop) */}
           <div className="lg:col-span-5">
-            <div className="sticky top-24 bg-white rounded-3xl border border-trailrz-grey-border p-6 shadow-xl space-y-6">
+            <div className="sticky top-24 bg-white rounded-3xl border border-trailrz-grey-border p-6 shadow-xl space-y-6 relative overflow-hidden">
+              <BorderBeam size={160} duration={14} colorFrom="#E53935" colorTo="#FFA000" />
               <div className="flex items-center justify-between pb-4 border-b border-trailrz-grey-border">
                 <div>
                   <span className="text-[10px] uppercase font-bold tracking-widest text-trailrz-grey block">
