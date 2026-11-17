@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import "@radix-ui/themes/styles.css";
 import "./globals.css";
-import { Theme } from "@radix-ui/themes";
 
 export const metadata: Metadata = {
   title: "TRAILRZ — Curated Experiences & Live Event Discovery",
@@ -33,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -43,9 +41,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-trailrz-ivory text-trailrz-black font-sans selection:bg-trailrz-red selection:text-white">
-        <Theme accentColor="crimson" grayColor="sand" radius="large" scaling="95%">
-          {children}
-        </Theme>
+        {children}
       </body>
     </html>
   );
