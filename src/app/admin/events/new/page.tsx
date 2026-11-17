@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import CloudinaryImageUpload from "@/components/admin/CloudinaryImageUpload";
 import {
   ArrowLeft,
   Save,
@@ -28,9 +29,7 @@ export default function NewEventPage() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [isOriginal, setIsOriginal] = useState(false);
   const [mood, setMood] = useState("Date Night");
-  const [coverImage, setCoverImage] = useState(
-    "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1200&q=80"
-  );
+  const [coverImage, setCoverImage] = useState("");
 
   // Location
   const [city, setCity] = useState("Chandigarh");
@@ -348,19 +347,12 @@ export default function NewEventPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-white/80 mb-1">
-              Cover Image URL * (Unsplash or Cloudinary)
-            </label>
-            <input
-              type="url"
-              required
-              placeholder="https://images.unsplash.com/..."
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-neutral-800 border border-white/10 text-sm text-white focus:outline-none focus:border-trailrz-red font-mono"
-            />
-          </div>
+          <CloudinaryImageUpload
+            value={coverImage}
+            onChange={setCoverImage}
+            label="Event Cover Image"
+            required
+          />
         </div>
 
         {/* Section 2: Location & Schedule */}

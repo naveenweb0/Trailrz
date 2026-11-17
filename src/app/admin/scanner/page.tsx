@@ -214,7 +214,7 @@ export default function AdminScannerPage() {
               type="text"
               autoFocus
               required
-              placeholder="Scan QR or paste TRZ-2026-..."
+              placeholder="Scan QR, Ticket ID (TRZ-2026-...) or Booking Ref (TRZ-BK-...)"
               value={ticketInput}
               onChange={(e) => setTicketInput(e.target.value)}
               className="flex-grow px-4 py-3.5 rounded-2xl bg-neutral-800 border border-white/10 text-sm text-white font-mono placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-trailrz-red/50 focus:border-trailrz-red"

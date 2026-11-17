@@ -79,7 +79,9 @@ export default function EventCard({ event, priority = false }: EventCardProps) {
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs">
           <div className="flex items-center space-x-1 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-md">
             <Calendar className="w-3.5 h-3.5 text-trailrz-red" />
-            <span className="font-medium">{formatEventDate(event.eventDate)}</span>
+            <span className="font-medium" suppressHydrationWarning>
+              {formatEventDate(event.eventDate)}
+            </span>
           </div>
 
           <div className="flex items-center space-x-1 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-md">

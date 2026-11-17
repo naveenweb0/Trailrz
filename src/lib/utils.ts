@@ -19,32 +19,37 @@ export function formatCurrency(amountInPaise: number, includeDecimals = false): 
   }).format(rupees);
 }
 
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 /**
- * Format date for events (e.g. Sat, 22 Nov 2026)
+ * Format date for events deterministically across SSR and browser (e.g. "Mon, 30 Nov 2026")
  */
 export function formatEventDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat("en-IN", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(d);
+  if (!d || isNaN(d.getTime())) return "";
+  const dayName = DAYS[d.getDay()];
+  const day = d.getDate();
+  const monthName = MONTHS[d.getMonth()];
+  const year = d.getFullYear();
+  return `${dayName}, ${day} ${monthName} ${year}`;
 }
 
 /**
- * Format date with time
+ * Format date with time deterministically across SSR and browser (e.g. "30 Nov 2026, 6:30 PM")
  */
 export function formatDateTime(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(d);
+  if (!d || isNaN(d.getTime())) return "";
+  const day = d.getDate();
+  const monthName = MONTHS[d.getMonth()];
+  const year = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${day} ${monthName} ${year}, ${hours}:${minutes} ${ampm}`;
 }
 
 /**

@@ -77,12 +77,19 @@ export async function verifyAndCheckInTicket(
     }
   }
 
-  // Find ticket by ticketNumber or verificationToken
-  const ticket = await prisma.ticket.findFirst({
+  // Find ticket by:
+  // 1. ticketNumber (e.g. TRZ-2026-829176)
+  // 2. bookingReference (e.g. TRZ-BK-2026-34297)
+  // 3. verificationToken or raw QR string
+  // 4. ticket ID
+  let ticket = await prisma.ticket.findFirst({
     where: {
       OR: [
         { ticketNumber },
+        { id: ticketIdentifier },
         { verificationToken: verificationToken || ticketIdentifier },
+        { booking: { bookingReference: ticketIdentifier } },
+        { booking: { id: ticketIdentifier } },
       ],
     },
     include: {
@@ -94,7 +101,34 @@ export async function verifyAndCheckInTicket(
       ticketType: true,
       checkIn: true,
     },
+    orderBy: {
+      status: "asc", // Prioritize VALID tickets before USED
+    },
   });
+
+  // If still not found, try substring match (e.g. partial reference or number)
+  if (!ticket && ticketIdentifier.length >= 4) {
+    ticket = await prisma.ticket.findFirst({
+      where: {
+        OR: [
+          { ticketNumber: { contains: ticketIdentifier } },
+          { booking: { bookingReference: { contains: ticketIdentifier } } },
+        ],
+      },
+      include: {
+        booking: {
+          include: {
+            event: true,
+          },
+        },
+        ticketType: true,
+        checkIn: true,
+      },
+      orderBy: {
+        status: "asc",
+      },
+    });
+  }
 
   if (!ticket) {
     return {

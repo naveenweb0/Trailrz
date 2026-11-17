@@ -206,8 +206,23 @@ export default function AdminEventsPage() {
                 </tr>
               ) : events.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-white/40">
-                    No experiences found matching filters.
+                  <td colSpan={7} className="py-16 text-center text-white/50">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-neutral-800 border border-white/10 flex items-center justify-center text-trailrz-red">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">No experiences yet</p>
+                      <p className="text-xs text-white/40 max-w-sm">
+                        Your catalog is completely clean. Click below to curate and publish your first live experience.
+                      </p>
+                      <a
+                        href="/admin/events/new"
+                        className="mt-2 px-4 py-2 rounded-xl bg-trailrz-red text-white text-xs font-bold hover:bg-trailrz-red-hover transition-colors inline-flex items-center space-x-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Curate First Event</span>
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ) : (

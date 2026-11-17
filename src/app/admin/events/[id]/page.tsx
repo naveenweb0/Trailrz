@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import CloudinaryImageUpload from "@/components/admin/CloudinaryImageUpload";
 import {
   ArrowLeft,
   Save,
@@ -377,18 +378,12 @@ export default function EditEventPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-white/80 mb-1">
-              Cover Image URL
-            </label>
-            <input
-              type="url"
-              required
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-neutral-800 border border-white/10 text-sm text-white focus:outline-none focus:border-trailrz-red font-mono"
-            />
-          </div>
+          <CloudinaryImageUpload
+            value={coverImage}
+            onChange={setCoverImage}
+            label="Event Cover Image"
+            required
+          />
         </div>
 
         {/* Location & Schedule */}

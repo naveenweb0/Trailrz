@@ -192,11 +192,39 @@ export default async function HomePage() {
             </a>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {curated.map((event, idx) => (
-              <EventCard key={event.id} event={event} priority={idx < 3} />
-            ))}
-          </div>
+          {curated.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {curated.map((event, idx) => (
+                <EventCard key={event.id} event={event} priority={idx < 3} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl bg-white border border-trailrz-grey-border p-12 text-center max-w-2xl mx-auto shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-trailrz-red/10 text-trailrz-red mx-auto flex items-center justify-center mb-4">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h3 className="font-editorial text-2xl font-bold text-trailrz-black mb-2">
+                Curating the Next Experiences
+              </h3>
+              <p className="text-sm text-trailrz-grey mb-6">
+                Our team is busy preparing fresh, handpicked gatherings. Upload your first experience from the admin dashboard to showcase it right here.
+              </p>
+              <div className="flex items-center justify-center space-x-4">
+                <a
+                  href="/admin/events/new"
+                  className="px-5 py-2.5 rounded-full bg-trailrz-red text-white font-bold text-xs hover:bg-trailrz-red-hover transition-colors"
+                >
+                  Create Event in Admin
+                </a>
+                <a
+                  href="/discover"
+                  className="px-5 py-2.5 rounded-full border border-trailrz-black text-trailrz-black font-bold text-xs hover:bg-trailrz-black hover:text-white transition-colors"
+                >
+                  Browse Directory
+                </a>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* SECTION 2: TRAILRZ ORIGINALS (THE CORE BRAND DIFFERENTIATOR) */}
@@ -230,64 +258,82 @@ export default async function HomePage() {
             </div>
 
             {/* Originals Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {originals.map((event) => (
-                <div
-                  key={event.id}
-                  className="group relative bg-white/5 rounded-3xl overflow-hidden border border-white/15 hover:border-trailrz-red/50 transition-all duration-300 flex flex-col"
-                >
-                  <div className="relative aspect-[16/9] w-full overflow-hidden">
-                    <Image
-                      src={event.coverImage}
-                      alt={event.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-trailrz-black via-transparent to-transparent" />
-                    <div className="absolute top-4 left-4">
-                      <span className="px-3 py-1 rounded-full bg-trailrz-red text-white text-[11px] font-extrabold uppercase tracking-widest">
-                        Original Production
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex flex-col justify-between flex-grow">
-                    <div>
-                      <div className="flex items-center space-x-2 text-xs text-white/60 mb-2">
-                        <MapPin className="w-3.5 h-3.5 text-trailrz-red" />
-                        <span>
-                          {event.venueName}, {event.city}
+            {originals.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {originals.map((event) => (
+                  <div
+                    key={event.id}
+                    className="group relative bg-white/5 rounded-3xl overflow-hidden border border-white/15 hover:border-trailrz-red/50 transition-all duration-300 flex flex-col"
+                  >
+                    <div className="relative aspect-[16/9] w-full overflow-hidden">
+                      <Image
+                        src={event.coverImage}
+                        alt={event.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-trailrz-black via-transparent to-transparent" />
+                      <div className="absolute top-4 left-4">
+                        <span className="px-3 py-1 rounded-full bg-trailrz-red text-white text-[11px] font-extrabold uppercase tracking-widest">
+                          Original Production
                         </span>
                       </div>
-                      <h3 className="font-editorial text-2xl font-bold text-white group-hover:text-trailrz-red transition-colors mb-2">
-                        {event.title}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-white/70 line-clamp-2 leading-relaxed">
-                        {event.shortDescription}
-                      </p>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-white/10 flex items-center justify-between">
+                    <div className="p-6 flex flex-col justify-between flex-grow">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider text-white/50 block">
-                          Tickets From
-                        </span>
-                        <span className="text-lg font-extrabold text-white">
-                          ₹{(event.minPrice / 100).toFixed(0)}
-                        </span>
+                        <div className="flex items-center space-x-2 text-xs text-white/60 mb-2">
+                          <MapPin className="w-3.5 h-3.5 text-trailrz-red" />
+                          <span>
+                            {event.venueName}, {event.city}
+                          </span>
+                        </div>
+                        <h3 className="font-editorial text-2xl font-bold text-white group-hover:text-trailrz-red transition-colors mb-2">
+                          {event.title}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-white/70 line-clamp-2 leading-relaxed">
+                          {event.shortDescription}
+                        </p>
                       </div>
 
-                      <a
-                        href={`/events/${event.slug}`}
-                        className="px-5 py-2.5 rounded-xl bg-white text-trailrz-black font-extrabold text-xs hover:bg-trailrz-red hover:text-white transition-colors"
-                      >
-                        Reserve Passes
-                      </a>
+                      <div className="pt-6 mt-6 border-t border-white/10 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase tracking-wider text-white/50 block">
+                            Tickets From
+                          </span>
+                          <span className="text-lg font-extrabold text-white">
+                            ₹{(event.minPrice / 100).toFixed(0)}
+                          </span>
+                        </div>
+
+                        <a
+                          href={`/events/${event.slug}`}
+                          className="px-5 py-2.5 rounded-xl bg-white text-trailrz-black font-extrabold text-xs hover:bg-trailrz-red hover:text-white transition-colors"
+                        >
+                          Reserve Passes
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-3xl bg-white/5 border border-white/10 p-10 text-center max-w-xl mx-auto">
+                <Sparkles className="w-8 h-8 text-trailrz-red mx-auto mb-3" />
+                <h3 className="font-editorial text-xl font-bold text-white mb-2">
+                  Bespoke Originals Coming Soon
+                </h3>
+                <p className="text-xs sm:text-sm text-white/60 mb-4">
+                  Chai & Chords, Candlelight Evenings, and Unplugged Rooftop Sessions are in production.
+                </p>
+                <a
+                  href="/admin/events/new"
+                  className="inline-block px-5 py-2 rounded-full bg-trailrz-red text-white text-xs font-bold hover:bg-trailrz-red-hover transition-colors"
+                >
+                  Create an Original
+                </a>
+              </div>
+            )}
           </div>
         </section>
 
