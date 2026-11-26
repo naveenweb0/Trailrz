@@ -15,7 +15,7 @@ const MOODS = ["Date Night", "With Friends", "Family Time", "Creative Escape", "
 const DT = ["start_at", "end_at", "booking_opens_at", "booking_closes_at"];
 const blankTier = () => ({ name: "General Admission", description: "", price: 0, capacity: 50, max_per_booking: 6, sale_starts_at: "", sale_ends_at: "", active: true });
 const BLANK = { title: "", slug: "", category: "Music", moods: [], experience_type: "", is_original: false, short_description: "", description: "", organizer: "", city: "Chandigarh", venue: "", address: "", lat: "", lng: "",
-  start_at: "", end_at: "", booking_opens_at: "", booking_closes_at: "", cover_image: null, gallery: [], highlights: "", guidelines: "", why_attend: "", who_should_attend: "", what_to_expect: "", included: "", faqs: [], cancellation_policy: "", age_restriction: "", tiers: [blankTier()] };
+  start_at: "", end_at: "", booking_opens_at: "", booking_closes_at: "", gate_key: "", gate_pin: "", cover_image: null, gallery: [], highlights: "", guidelines: "", why_attend: "", who_should_attend: "", what_to_expect: "", included: "", faqs: [], cancellation_policy: "", age_restriction: "", tiers: [blankTier()] };
 
 function fromApi(e) {
   const f = {
@@ -172,6 +172,11 @@ export default function EventEditor() {
         <F label="Ends"><input data-testid="event-end-input" type="datetime-local" className="field" value={f.end_at} onChange={s("end_at")} /></F>
         <F label="Booking opens"><input type="datetime-local" className="field" value={f.booking_opens_at} onChange={s("booking_opens_at")} /></F>
         <F label="Booking closes"><input type="datetime-local" className="field" value={f.booking_closes_at} onChange={s("booking_closes_at")} /></F>
+      </Box>
+      <Box title="Gate portal credentials">
+        <F label="Gate ID (leave blank to auto-generate)"><input data-testid="event-gate-key-input" className="field font-serial text-sm" placeholder="e.g. gate-acoustic-night" value={f.gate_key} onChange={s("gate_key")} /></F>
+        <F label="Gate PIN / Password (defaults to 2026)"><input data-testid="event-gate-pin-input" className="field font-serial text-sm" placeholder="e.g. 2026" value={f.gate_pin} onChange={s("gate_pin")} /></F>
+        <p className="sm:col-span-2 text-xs text-mineral">Share this Gate ID and PIN with the gate keeper to log in at <span className="font-serial">/gate</span>.</p>
       </Box>
       <fieldset className="bg-surface border hairline p-5 mb-4"><legend className="eyebrow px-1">Media</legend>
         <p className="text-xs font-medium mb-2">Cover image</p>

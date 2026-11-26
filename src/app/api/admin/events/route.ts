@@ -55,6 +55,15 @@ export async function POST(request: NextRequest) {
       throw new ApiError(409, "That URL slug is already used by another event");
     }
 
+    if (data.gateKey) {
+      const existingGate = await prisma.event.findUnique({
+        where: { gateKey: data.gateKey },
+      });
+      if (existingGate) {
+        throw new ApiError(409, "That Gate ID is already used by another event");
+      }
+    }
+
     const created = await prisma.event.create({
       data: {
         ...data,
