@@ -1,6 +1,7 @@
 export interface HeroSlide {
   label: string;
   image_url: string;
+  description: string;
 }
 
 export interface HeroConfig {
@@ -21,14 +22,46 @@ export interface HeroConfig {
 }
 
 export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
-  { label: "CANDLELIGHT", image_url: "/img/hero.jpg" },
-  { label: "JAZZ NIGHT", image_url: "/img/music-nights.jpg" },
-  { label: "POTTERY", image_url: "/img/creative-escape.jpg" },
-  { label: "SUPPER CLUB", image_url: "/img/slow-evenings.jpg" },
-  { label: "STAND-UP", image_url: "/img/comedy.jpg" },
-  { label: "ROOFTOP", image_url: "/img/rooftop.jpg" },
-  { label: "GALLERY", image_url: "/img/something-different.jpg" },
-  { label: "THEATRE", image_url: "/img/theatre.jpg" },
+  {
+    label: "CANDLELIGHT",
+    image_url: "/img/hero.jpg",
+    description: "Find the moments, places and people worth stepping out for.",
+  },
+  {
+    label: "JAZZ NIGHT",
+    image_url: "/img/music-nights.jpg",
+    description: "Intimate live sets, warm acoustics, and late-night rooms.",
+  },
+  {
+    label: "POTTERY",
+    image_url: "/img/creative-escape.jpg",
+    description: "Hands-on studio evenings built to slow the week down.",
+  },
+  {
+    label: "SUPPER CLUB",
+    image_url: "/img/slow-evenings.jpg",
+    description: "Long tables, seasonal menus, and unhurried conversation.",
+  },
+  {
+    label: "STAND-UP",
+    image_url: "/img/comedy.jpg",
+    description: "Close-up comedy rooms with sharp new voices.",
+  },
+  {
+    label: "ROOFTOP",
+    image_url: "/img/rooftop.jpg",
+    description: "Open-air golden hours, curated vinyl, and city skylines.",
+  },
+  {
+    label: "GALLERY",
+    image_url: "/img/something-different.jpg",
+    description: "After-hours exhibitions, talks, and independent culture.",
+  },
+  {
+    label: "THEATRE",
+    image_url: "/img/theatre.jpg",
+    description: "Live storytelling, plays, and intimate stage performances.",
+  },
 ];
 
 export const DEFAULT_HERO_CONFIG: HeroConfig = {
@@ -73,10 +106,12 @@ export function normalizeHeroConfig(raw: unknown): HeroConfig {
       const item = s as Record<string, unknown>;
       const imageUrl = typeof item.image_url === "string" ? item.image_url.trim() : "";
       const label = typeof item.label === "string" ? item.label.trim() : "";
+      const description = typeof item.description === "string" ? item.description : "";
       if (!imageUrl || !isSafeImageUrl(imageUrl)) return null;
       return {
         label: (label || "TRAILRZ").slice(0, 20),
         image_url: imageUrl,
+        description: description.slice(0, 220),
       };
     })
     .filter((s): s is HeroSlide => s !== null);

@@ -32,17 +32,21 @@ export async function GET(_request: NextRequest) {
       console.warn("DB notice in /api/public/meta, using fallback platform defaults");
     }
 
-    return jsonOk({
-      categories: CATEGORIES,
-      moods: MOODS,
-      cities_with_events: cities,
-      supported_cities: setting?.supportedCities || ["Chandigarh", "Mohali", "Panchkula"],
-      support_email: setting?.supportEmail || "",
-      support_phone: setting?.supportPhone || "",
-      socials: setting?.socials || {},
-      platform_name: setting?.platformName || "TRAILRZ",
-      hero: normalizeHeroConfig(setting?.hero),
-    });
+    return jsonOk(
+      {
+        categories: CATEGORIES,
+        moods: MOODS,
+        cities_with_events: cities,
+        supported_cities: setting?.supportedCities || ["Chandigarh", "Mohali", "Panchkula"],
+        support_email: setting?.supportEmail || "",
+        support_phone: setting?.supportPhone || "",
+        socials: setting?.socials || {},
+        platform_name: setting?.platformName || "TRAILRZ",
+        hero: normalizeHeroConfig(setting?.hero),
+      },
+      200,
+      { "Cache-Control": "no-store" }
+    );
   } catch {
     return jsonOk({
       categories: CATEGORIES,

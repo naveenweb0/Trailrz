@@ -16,6 +16,7 @@ const slideSchema = z.object({
     .min(1)
     .max(1000)
     .refine(isSafeImageUrl, "Image URL must start with https://, http://, or /"),
+  description: z.string().max(220).default(""),
 });
 
 const heroSchema = z.object({
@@ -55,9 +56,11 @@ export async function GET(request: NextRequest) {
       where: { id: "platform" },
     });
 
-    return jsonOk({
-      hero: normalizeHeroConfig(s?.hero),
-    });
+    return jsonOk(
+      { hero: normalizeHeroConfig(s?.hero) },
+      200,
+      { "Cache-Control": "no-store" }
+    );
   } catch (err) {
     return handleApiError(err);
   }
@@ -86,7 +89,7 @@ export async function PUT(request: NextRequest) {
 
     await audit(member, "hero.update", "platform");
 
-    return jsonOk({ hero });
+    return jsonOk({ hero }, 200, { "Cache-Control": "no-store" });
   } catch (err) {
     return handleApiError(err);
   }

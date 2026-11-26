@@ -128,7 +128,9 @@ export default function HeroPoster() {
     preloadSlide(slides[(k + 1) % slides.length]?.image_url);
     preloadSlide(slides[(k + 2) % slides.length]?.image_url);
   }, [k, slides]);
-  const activeSlide = slides[k % slides.length] || slides[0];
+  const slideIdx = k % slides.length;
+  const activeSlide = slides[slideIdx] || slides[0];
+  const activeDescription = activeSlide?.description || hero.subtext;
   const city = cities[k % cities.length];
   const lines = [hero.headline_line_1, hero.headline_line_2].filter(Boolean);
 
@@ -136,7 +138,7 @@ export default function HeroPoster() {
     <section ref={ref} id="top" onMouseMove={onMove} className="relative h-[calc(100svh-72px)] min-h-[620px] overflow-hidden bg-black text-parchment dark-zone" data-testid="hero-poster" aria-labelledby="hero-title">
       <motion.div className="absolute inset-0" style={{ scale, x: driftX, y: driftY }}>
         <AnimatePresence initial={false}>
-          <motion.img key={activeSlide.image_url} src={activeSlide.image_url} alt="" aria-hidden decoding="async" fetchPriority={k === 0 ? "high" : "auto"}
+          <motion.img key={`${slideIdx}-${activeSlide.image_url}`} src={activeSlide.image_url} alt="" aria-hidden decoding="async" fetchPriority={k === 0 ? "high" : "auto"}
             className="absolute inset-0 w-full h-full object-cover"
             initial={{ clipPath: "inset(0 0 100% 0)", scale: 1.15 }} animate={{ clipPath: "inset(0 0 0% 0)", scale: 1 }} transition={{ duration: 1.1, ease: [0.76, 0, 0.24, 1] }} />
         </AnimatePresence>
@@ -169,16 +171,30 @@ export default function HeroPoster() {
         <div>
           <h1 id="hero-title" className="font-display leading-[0.84] tracking-[-0.035em] text-[18vw] sm:text-[14vw] lg:text-[10.5vw]">
             {lines.map((line, li) => (
-              <span key={`${li}-${line}`} className="block overflow-hidden pb-[0.22em] -mb-[0.2em]">
+              <span key={li} className="block overflow-hidden pb-[0.22em] -mb-[0.2em]">
                 <motion.span className={`block ${li ? "lg:pl-[12vw]" : ""}`} initial={{ y: "135%" }} animate={{ y: 0 }} transition={{ duration: 1.2, ease: EASE, delay: delay + li * 0.15 }}>{line}</motion.span>
               </span>
             ))}
           </h1>
           <motion.div className="mt-8 flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-t border-white/15 pt-6"
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: EASE, delay: delay + 0.6 }}>
-            <div className="flex items-end gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-6">
               {hero.tagline && <p className="font-display italic text-beam text-4xl sm:text-5xl leading-none">{hero.tagline}</p>}
-              {hero.subtext && <p className="hidden xl:block text-sm text-[#cfc6b6] max-w-xs">{hero.subtext}</p>}
+              {activeDescription && (
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={activeDescription}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.35, ease: EASE }}
+                    data-testid="hero-active-description"
+                    className="text-xs sm:text-sm text-[#cfc6b6] max-w-xs"
+                  >
+                    {activeDescription}
+                  </motion.p>
+                </AnimatePresence>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Magnetic strength={0.16}>
