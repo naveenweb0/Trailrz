@@ -8,7 +8,7 @@ import { code, slugify, digits, compareDigest, RANK, STAFF, EVENT_STAFF, GATE_ST
 import { ApiError } from "@/lib/api-response";
 import { confirmationHtml, broadcastHtml } from "@/lib/resend";
 import { authenticateRequest } from "@/lib/auth";
-import { normalizeHeroConfig, DEFAULT_HERO_CONFIG } from "@/lib/hero";
+import { normalizeHeroConfig } from "@/lib/hero";
 
 
 
@@ -195,17 +195,20 @@ describe("Backend Foundation Unit & Parity Tests", () => {
 
     test("normalizes hero config safely and filters unsafe URLs", () => {
       const normalized = normalizeHeroConfig({
-        headline_line_1: "Custom Headline",
-        primary_cta_href: "javascript:alert(1)",
         slides: [
-          { label: "BAD", image_url: "javascript:alert(1)" },
-          { label: "GOOD", image_url: "https://res.cloudinary.com/demo/image/upload/hero.jpg" },
+          { image_url: "javascript:alert(1)", line_1: "BAD", line_2: "BAD", line_3: "BAD" },
+          {
+            image_url: "https://res.cloudinary.com/demo/image/upload/hero.jpg",
+            line_1: "now showing",
+            line_2: "theatre",
+            line_3: "mohali",
+          },
         ],
       });
-      assert.equal(normalized.headline_line_1, "Custom Headline");
-      assert.equal(normalized.primary_cta_href, DEFAULT_HERO_CONFIG.primary_cta_href);
       assert.equal(normalized.slides.length, 1);
-      assert.equal(normalized.slides[0].label, "GOOD");
+      assert.equal(normalized.slides[0].line_1, "NOW SHOWING");
+      assert.equal(normalized.slides[0].line_2, "THEATRE");
+      assert.equal(normalized.slides[0].line_3, "MOHALI");
     });
   });
 });
