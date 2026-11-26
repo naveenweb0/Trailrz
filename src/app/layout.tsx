@@ -1,0 +1,64 @@
+import type { Metadata } from "next";
+import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
+import { getAppUrl } from "@/lib/env";
+
+const appUrl = getAppUrl();
+
+export const metadata: Metadata = {
+  ...(appUrl ? { metadataBase: new URL(appUrl) } : {}),
+  title: {
+    default: "TRAILRZ — Life is happening. Go be part of it.",
+    template: "%s — TRAILRZ",
+  },
+  description:
+    "Curated cultural experiences, live music, supper clubs, workshops and TRAILRZ Originals across Chandigarh, Mohali and Panchkula.",
+  icons: {
+    icon: "/trailrz-logo.png",
+  },
+  openGraph: {
+    title: "TRAILRZ — Life is happening. Go be part of it.",
+    description:
+      "Curated cultural experiences, live music, supper clubs, workshops and TRAILRZ Originals across Chandigarh, Mohali and Panchkula.",
+    type: "website",
+    siteName: "TRAILRZ",
+    images: ["/trailrz-logo.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TRAILRZ — Life is happening. Go be part of it.",
+    description:
+      "Curated cultural experiences, live music, supper clubs, workshops and TRAILRZ Originals across Chandigarh, Mohali and Panchkula.",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Fonts are self-hosted through @fontsource imports in globals.css —
+            no render-blocking cross-origin stylesheet needed here. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var p = new URLSearchParams(window.location.search);
+                if (!p.has('nopreload') && !sessionStorage.getItem('trz_intro')) {
+                  document.documentElement.classList.add('trz-intro-pending');
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="antialiased bg-parchment text-ink">
+        {children}
+        <Toaster position="bottom-center" />
+      </body>
+    </html>
+  );
+}

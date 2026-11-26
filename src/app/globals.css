@@ -1,0 +1,152 @@
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/space-grotesk/700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* TRAILRZ tokens — beam yellow sampled from the logo (#FFD20A), ink from its letterforms (#0B0B0A) */
+    --parchment: #FAF7F2;
+    --surface: #FFFDF9;
+    --tint: #F2EDE3;
+    --linen: #E6DED0;
+    --ink: #181614;
+    --ink-deep: #121110;
+    --ink-surface: #1F1C19;
+    --ink-border: #34302B;
+    --mineral: #686053;
+    --beam: #FFD20A;
+    --amber: #F6BE22;
+    --olive: #5E6B43;
+    --granted: #2E8B4E;
+    --granted-bg: #0E3A1E;
+    --dup: #E7A928;
+    --dup-bg: #3B2A08;
+    --invalid: #D2432F;
+    --invalid-bg: #4A120B;
+    --wrong: #4E8FD1;
+    --wrong-bg: #0F2740;
+
+    --background: 38 50% 97%;
+    --foreground: 30 9% 9%;
+    --card: 40 100% 99%;
+    --card-foreground: 30 9% 9%;
+    --popover: 40 100% 99%;
+    --popover-foreground: 30 9% 9%;
+    --primary: 30 9% 9%;
+    --primary-foreground: 38 50% 97%;
+    --secondary: 40 30% 92%;
+    --secondary-foreground: 30 9% 9%;
+    --muted: 40 30% 92%;
+    --muted-foreground: 37 11% 37%;
+    --accent: 49 100% 52%;
+    --accent-foreground: 30 9% 9%;
+    --destructive: 8 64% 50%;
+    --destructive-foreground: 38 50% 97%;
+    --border: 38 27% 86%;
+    --input: 38 27% 82%;
+    --ring: 30 9% 9%;
+    --radius: 2px;
+  }
+  * { @apply border-border; }
+  html { scroll-behavior: auto; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+  }
+  ::selection { background: var(--beam); color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .dark-zone :focus-visible { outline-color: var(--beam); }
+  img { max-width: 100%; }
+}
+
+@layer components {
+  .font-display { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; letter-spacing: -0.015em; }
+  .font-serial { font-family: "Space Grotesk", monospace; letter-spacing: 0.06em; font-weight: 600; }
+  .eyebrow { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mineral); }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .wrap { @apply mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12; }
+  .hairline { border-color: var(--linen); }
+  /* The logo's beam, as a solid wedge — never a gradient */
+  .beam-wedge { display: inline-block; width: 44px; height: 10px; background: var(--beam); clip-path: polygon(0 0, 100% 70%, 100% 100%, 0 100%); }
+  .beam-underline { background-image: linear-gradient(var(--beam), var(--beam)); background-size: 100% 0.32em; background-position: 0 88%; background-repeat: no-repeat; }
+  .btn-ink { @apply inline-flex items-center justify-center gap-2 px-6 h-12 text-[0.9375rem] font-medium; background: var(--ink); color: var(--parchment); transition: background-color .15s ease-out, transform .15s ease-out; }
+  .btn-ink:hover { background: #2A2622; }
+  .btn-ink:active { transform: translateY(1px); }
+  .btn-ink:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-line { @apply inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-medium border; border-color: var(--ink); transition: background-color .15s ease-out, color .15s ease-out; }
+  .btn-line:hover { background: var(--ink); color: var(--parchment); }
+  .btn-beam { @apply inline-flex items-center justify-center gap-2 px-6 h-12 text-[0.9375rem] font-semibold; background: var(--beam); color: var(--ink); transition: transform .15s ease-out, background-color .15s ease-out; }
+  .btn-beam:hover { background: var(--amber); }
+  .field { @apply w-full h-11 px-3 bg-transparent border text-[0.9375rem]; border-color: var(--linen); transition: border-color .15s ease-out; }
+  .field:focus { outline: none; border-color: var(--ink); }
+  .img-cover { width: 100%; height: 100%; object-fit: cover; }
+  .zoom-img { transition: transform .85s cubic-bezier(.22,1,.36,1); }
+  .group:hover .zoom-img { transform: scale(1.03); }
+  .link-u { background-image: linear-gradient(currentColor, currentColor); background-size: 0 1px; background-position: 0 100%; background-repeat: no-repeat; transition: background-size .3s cubic-bezier(.22,1,.36,1); }
+  .link-u:hover, .link-u[aria-current="page"] { background-size: 100% 1px; }
+  .perf { background-image: radial-gradient(circle, var(--parchment) 4px, transparent 4.5px); background-size: 14px 14px; background-repeat: repeat-x; height: 10px; }
+  .reveal { animation: reveal .85s cubic-bezier(.22,1,.36,1) both; }
+  .marquee-track { animation: marquee 44s linear infinite; }
+  .text-outline { color: transparent; -webkit-text-stroke: 1px #E6DED0; }
+  .text-outline-ink { color: transparent; -webkit-text-stroke: 1.5px var(--ink); }
+  .has-cursor, .has-cursor a, .has-cursor button { cursor: none; }
+  .has-cursor input, .has-cursor select, .has-cursor textarea, .has-cursor .cl-rootBox, .has-cursor .cl-rootBox * { cursor: auto; }
+  .grain { opacity: .045; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); animation: grain 1.4s steps(4) infinite; }
+  @keyframes grain { 0% { transform: translate(0,0); } 25% { transform: translate(-3%,2%); } 50% { transform: translate(2%,-3%); } 75% { transform: translate(-2%,-1%); } 100% { transform: translate(0,0); } }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .btn-ink, .btn-beam { position: relative; overflow: hidden; isolation: isolate; }
+  .btn-ink::after { content: ""; position: absolute; inset: 0; background: var(--beam); z-index: -1; transform: translateX(-101%); clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%); transition: transform .6s cubic-bezier(.22,1,.36,1); }
+  .btn-ink:hover::after { transform: translateX(0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  .btn-ink:hover { color: var(--ink); background: var(--ink); }
+  .btn-ink:disabled::after { display: none; }
+  /* A light pass over the beam button — same gesture as the ink sweep, inverted */
+  .btn-beam::after { content: ""; position: absolute; inset: -10%; background: linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, 0.62) 50%, transparent 66%); transform: translateX(-130%); transition: transform 0.8s cubic-bezier(.22, 1, .36, 1); z-index: -1; pointer-events: none; }
+  .btn-beam:hover::after { transform: translateX(130%); }
+  .btn-beam:active { transform: translateY(1px); }
+  .btn-line { transition: background-color .35s ease-out, color .35s ease-out, letter-spacing .35s ease-out; }
+  .eyebrow { transition: color .2s ease-out; }
+  @keyframes reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes trz-spin { to { transform: rotate(360deg); } }
+  @keyframes trz-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+  .trz-spin-slow { animation: trz-spin 26s linear infinite; }
+  .trz-float { animation: trz-float 2.6s ease-in-out infinite; }
+  @keyframes trz-shuttle-x { 0% { transform: translateX(-100%); opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateX(460%); opacity: 0; } }
+  @keyframes trz-shuttle-y { 0% { transform: translateY(-40%); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(420%); opacity: 0; } }
+  @keyframes trz-ring-pulse { 0% { transform: scale(0.75); opacity: 0.75; } 70% { transform: scale(2.1); opacity: 0; } 100% { transform: scale(2.1); opacity: 0; } }
+  @keyframes trz-crosshair-float { 0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.28; } 50% { transform: translate3d(4px, -6px, 0); opacity: 0.52; } }
+  .trz-shuttle-x { animation: trz-shuttle-x 4.2s cubic-bezier(.22,1,.36,1) infinite; }
+  .trz-shuttle-y { animation: trz-shuttle-y 4.6s cubic-bezier(.22,1,.36,1) infinite; }
+  .trz-ring-pulse { animation: trz-ring-pulse 2.4s cubic-bezier(.22,1,.36,1) infinite; }
+  .trz-crosshair { animation: trz-crosshair-float 7s ease-in-out infinite; }
+  .card-sheen { position: relative; overflow: hidden; }
+  .card-sheen::before { content: ""; position: absolute; inset: -20%; background: linear-gradient(115deg, transparent 35%, rgba(255, 210, 10, 0.12) 50%, transparent 65%); transform: translateX(-120%); transition: transform 0.9s cubic-bezier(.22,1,.36,1); pointer-events: none; z-index: 2; }
+  .card-sheen:hover::before, .group:hover .card-sheen::before { transform: translateX(120%); }
+  .recharts-text { font-family: "Plus Jakarta Sans", sans-serif; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .pass-print { break-inside: avoid; page-break-inside: avoid; margin-bottom: 24px; }
+}
+
+html.trz-intro-pending #main {
+  opacity: 0;
+}
+
