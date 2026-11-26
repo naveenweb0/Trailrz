@@ -3,10 +3,20 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { getAppUrl } from "@/lib/env";
 
-const appUrl = getAppUrl();
+function parseMetadataBase(raw: string): URL | undefined {
+  if (!raw) return undefined;
+  try {
+    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    return new URL(normalized);
+  } catch {
+    return undefined;
+  }
+}
+
+const metadataBase = parseMetadataBase(getAppUrl());
 
 export const metadata: Metadata = {
-  ...(appUrl ? { metadataBase: new URL(appUrl) } : {}),
+  ...(metadataBase ? { metadataBase } : {}),
   title: {
     default: "TRAILRZ — Life is happening. Go be part of it.",
     template: "%s — TRAILRZ",
