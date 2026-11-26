@@ -31,6 +31,7 @@ import { errMsg, fmtDT, fmtTime, fmtDay } from "@/lib/api";
 import { useStaffApi } from "@/lib/staff-api";
 import { Loading } from "@/components/common/States";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useSearchParams } from "next/navigation";
 
 // Gate Context for all child components
 const GateCtx = createContext(null);

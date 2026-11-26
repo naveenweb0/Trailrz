@@ -75,5 +75,10 @@ export function getHoldMinutes(): number {
 }
 
 export function getAppUrl(): string {
-  return (getEnv("APP_URL", false) || getEnv("NEXT_PUBLIC_APP_URL", false) || "").replace(/\/+$/, "");
+  const explicit = getEnv("APP_URL", false) || getEnv("NEXT_PUBLIC_APP_URL", false);
+  if (explicit) return explicit.replace(/\/+$/, "");
+  // Vercel sets VERCEL_URL automatically (host only, no protocol)
+  const vercelHost = getEnv("VERCEL_URL", false);
+  if (vercelHost) return `https://${vercelHost}`;
+  return "";
 }
