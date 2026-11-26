@@ -103,7 +103,7 @@ export function Nav() {
       initial={{ y: "-100%" }} className={`sticky top-0 z-40 transition-[border-color,background-color,color] duration-500 border-b ${loc.pathname === "/" && !scrolled ? "bg-black text-parchment border-transparent dark-zone" : `bg-parchment/95 ${scrolled ? "border-linen" : "border-transparent"}`} no-print`}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 bg-ink text-parchment px-3 py-2 z-50">Skip to content</a>
       <nav className="wrap flex items-center h-[72px] gap-8" aria-label="Primary">
-        <Link to="/" data-testid="nav-logo-link" aria-label="TRAILRZ home"><Logo className="h-7 sm:h-8" plate /></Link>
+        <Link to="/" data-testid="nav-logo-link" aria-label="TRAILRZ home"><Logo className="h-8 sm:h-9" plate /></Link>
         <div className="hidden lg:flex items-center gap-7 ml-4">
           <NavLink to="/discover" data-testid="nav-discover" className="text-sm link-u"><Scramble text="Discover" /></NavLink>
           <ExperiencesMenu />
