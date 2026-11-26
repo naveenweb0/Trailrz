@@ -340,6 +340,7 @@ model PlatformSetting {
   defaultCity          String   @default("Chandigarh") @map("default_city")
   defaultMaxPerBooking Int      @default(10) @map("default_max_per_booking")
   socials              Json     @default("{}")
+  hero                 Json     @default("{}")
   notifyOnBooking      Boolean  @default(true) @map("notify_on_booking")
   updatedAt            DateTime @updatedAt @map("updated_at")
 

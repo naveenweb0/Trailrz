@@ -8,6 +8,7 @@ import { code, slugify, digits, compareDigest, RANK, STAFF, EVENT_STAFF, GATE_ST
 import { ApiError } from "@/lib/api-response";
 import { confirmationHtml, broadcastHtml } from "@/lib/resend";
 import { authenticateRequest } from "@/lib/auth";
+import { normalizeHeroConfig, DEFAULT_HERO_CONFIG } from "@/lib/hero";
 
 
 
@@ -190,6 +191,21 @@ describe("Backend Foundation Unit & Parity Tests", () => {
         (process.env as Record<string, string | undefined>).NODE_ENV = prevEnv;
         process.env.CLERK_SECRET_KEY = prevSecret;
       }
+    });
+
+    test("normalizes hero config safely and filters unsafe URLs", () => {
+      const normalized = normalizeHeroConfig({
+        headline_line_1: "Custom Headline",
+        primary_cta_href: "javascript:alert(1)",
+        slides: [
+          { label: "BAD", image_url: "javascript:alert(1)" },
+          { label: "GOOD", image_url: "https://res.cloudinary.com/demo/image/upload/hero.jpg" },
+        ],
+      });
+      assert.equal(normalized.headline_line_1, "Custom Headline");
+      assert.equal(normalized.primary_cta_href, DEFAULT_HERO_CONFIG.primary_cta_href);
+      assert.equal(normalized.slides.length, 1);
+      assert.equal(normalized.slides[0].label, "GOOD");
     });
   });
 });

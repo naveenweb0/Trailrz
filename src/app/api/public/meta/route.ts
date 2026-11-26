@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIES, MOODS } from "@/lib/constants";
-import { jsonOk, handleApiError } from "@/lib/api-response";
+import { normalizeHeroConfig } from "@/lib/hero";
+import { jsonOk } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     let setting: any = null;
     let cities: string[] = [];
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       ]);
       setting = settingRow;
       cities = publishedEvents.map((e) => e.city).sort();
-    } catch (dbErr) {
+    } catch {
       console.warn("DB notice in /api/public/meta, using fallback platform defaults");
     }
 
@@ -40,8 +41,9 @@ export async function GET(request: NextRequest) {
       support_phone: setting?.supportPhone || "",
       socials: setting?.socials || {},
       platform_name: setting?.platformName || "TRAILRZ",
+      hero: normalizeHeroConfig(setting?.hero),
     });
-  } catch (err) {
+  } catch {
     return jsonOk({
       categories: CATEGORIES,
       moods: MOODS,
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
       support_phone: "",
       socials: {},
       platform_name: "TRAILRZ",
+      hero: normalizeHeroConfig(null),
     });
   }
 }

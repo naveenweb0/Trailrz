@@ -13,6 +13,7 @@ import {
   Mail,
   BarChart3,
   Settings,
+  Sparkles,
   ScanLine,
   Menu,
   LogOut,
@@ -38,6 +39,7 @@ export const NAV = [
   ["payments", "Payments", CreditCard, STAFF],
   ["notifications", "Notifications", Mail, STAFF],
   ["reports", "Reports", BarChart3, STAFF],
+  ["hero", "Hero section", Sparkles, STAFF],
   ["settings", "Settings", Settings, STAFF],
 ];
 
