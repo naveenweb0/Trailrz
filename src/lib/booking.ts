@@ -76,21 +76,28 @@ export async function finalizeBooking(
     return b;
   }
 
-  if (b.finalizing) {
-    throw new ApiError(409, "Booking confirmation is already in progress");
-  }
-
-  // Mark finalizing
-  await prisma.booking.update({
-    where: { id: bookingId },
+  // Atomic lock so concurrent verify + webhook requests cannot double-finalize
+  const lock = await prisma.booking.updateMany({
+    where: {
+      id: bookingId,
+      status: { not: "confirmed" },
+      finalizing: false,
+    },
     data: { finalizing: true },
   });
 
-  const booking = b;
-
-  if (booking.status === "confirmed") {
-    return booking;
+  if (lock.count === 0) {
+    const latest = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!latest) {
+      throw new ApiError(404, "Booking not found");
+    }
+    if (latest.status === "confirmed") {
+      return latest;
+    }
+    throw new ApiError(409, "Booking confirmation is already in progress");
   }
+
+  const booking = b;
 
   try {
     const items = (booking.items as Array<{
@@ -205,13 +212,27 @@ export async function finalizeBooking(
       },
     });
 
-    // Send confirmation email
-    await queueEmail(
-      confirmed,
-      "booking_confirmation",
-      `Your passes for ${ev.title || "TRAILRZ"} · ${booking.reference}`,
-      confirmationHtml(confirmed, ticketsData)
-    );
+    // Send confirmation email without reversing the confirmed booking on email errors
+    try {
+      const existingNotif = await prisma.notification.findFirst({
+        where: {
+          bookingId: confirmed.id,
+          kind: "booking_confirmation",
+        },
+        select: { id: true },
+      });
+
+      if (!existingNotif) {
+        await queueEmail(
+          confirmed,
+          "booking_confirmation",
+          `Your passes for ${ev.title || "TRAILRZ"} · ${booking.reference}`,
+          confirmationHtml(confirmed, ticketsData)
+        );
+      }
+    } catch (emailErr) {
+      console.error("Confirmation email dispatch error for", bookingId, emailErr);
+    }
 
     return confirmed;
   } catch (err) {

@@ -50,13 +50,14 @@ export async function POST(request: NextRequest) {
 
     if (
       paymentPayload?.order_id &&
-      ["payment.captured", "order.paid"].includes(evt.event)
+      ["payment.captured", "order.paid"].includes(evt.event) &&
+      (!paymentPayload.status || paymentPayload.status === "captured")
     ) {
       const p = await prisma.payment.findUnique({
         where: { orderId: paymentPayload.order_id },
       });
 
-      if (p && paymentPayload.amount === p.amount) {
+      if (p && paymentPayload.amount === p.amount && p.status !== "refunded") {
         await prisma.payment.update({
           where: { id: p.id },
           data: {

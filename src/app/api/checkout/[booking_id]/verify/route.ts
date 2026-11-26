@@ -43,6 +43,13 @@ export async function POST(
       throw new ApiError(400, "Unknown payment order");
     }
 
+    if (b.status === "confirmed" && p.status === "paid") {
+      return jsonOk({
+        status: b.status,
+        reference: b.reference,
+      });
+    }
+
     if (!verifyRpSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
       await prisma.payment.update({
         where: { id: p.id },
