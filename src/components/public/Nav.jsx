@@ -98,13 +98,12 @@ export function Nav() {
   useEffect(() => {
     setMenuOpen(false);
   }, [loc.pathname]);
-  const onDarkHero = loc.pathname === "/" && !scrolled;
   return (
     <motion.header animate={{ y: hidden && !searchOpen && !menuOpen ? "-100%" : "0%" }} transition={{ duration: 0.45, ease: EASE }}
       initial={{ y: "-100%" }} className={`sticky top-0 z-40 transition-[border-color,background-color,color] duration-500 border-b ${loc.pathname === "/" && !scrolled ? "bg-black text-parchment border-transparent dark-zone" : `bg-parchment/95 ${scrolled ? "border-linen" : "border-transparent"}`} no-print`}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 bg-ink text-parchment px-3 py-2 z-50">Skip to content</a>
       <nav className="wrap flex items-center h-[72px] gap-8" aria-label="Primary">
-        <Link to="/" data-testid="nav-logo-link" aria-label="TRAILRZ home"><Logo className="h-7 sm:h-8" variant={onDarkHero ? "dark" : "light"} /></Link>
+        <Link to="/" data-testid="nav-logo-link" aria-label="TRAILRZ home"><Logo className="h-7 sm:h-8" plate /></Link>
         <div className="hidden lg:flex items-center gap-7 ml-4">
           <NavLink to="/discover" data-testid="nav-discover" className="text-sm link-u"><Scramble text="Discover" /></NavLink>
           <ExperiencesMenu />
@@ -133,7 +132,7 @@ function MobileMenu({ open, onOpenChange }) {
       <SheetContent side="right" className="bg-parchment w-full sm:max-w-md p-0 border-linen [&>button]:hidden">
         <div className="flex items-center justify-between px-6 h-[72px] border-b hairline">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <Logo className="h-7" />
+          <Logo className="h-7" plate />
           <button data-testid="mobile-menu-close" aria-label="Close menu" onClick={() => onOpenChange(false)}><X className="h-6 w-6" /></button>
         </div>
         <div className="px-6 py-8 flex flex-col gap-1">
