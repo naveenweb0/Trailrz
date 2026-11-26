@@ -19,8 +19,8 @@ export function SplitWords({ text, className = "", delay = 0, step = 0.045, acce
   return (
     <span className={className} aria-label={text}>
       {text.split(" ").map((w, i) => (
-        <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.08em] -mb-[0.08em]" aria-hidden>
-          <motion.span className={`inline-block ${accent[i] || ""}`} initial={{ y: "85%", opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }}
+        <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.18em] -mb-[0.18em]" aria-hidden>
+          <motion.span className={`inline-block ${accent[i] || ""}`} initial={{ y: "120%", opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }}
             transition={{ duration: 1.05, ease: EASE, delay: delay + i * step }}>
             {w}&nbsp;
           </motion.span>

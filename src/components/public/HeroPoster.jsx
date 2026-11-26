@@ -144,10 +144,10 @@ export default function HeroPoster() {
         </div>
 
         <div>
-          <h1 id="hero-title" className="font-display leading-[0.82] tracking-[-0.035em] text-[18vw] sm:text-[14vw] lg:text-[10.5vw]">
+          <h1 id="hero-title" className="font-display leading-[0.84] tracking-[-0.035em] text-[18vw] sm:text-[14vw] lg:text-[10.5vw]">
             {["Life is", "happening."].map((line, li) => (
-              <span key={line} className="block overflow-hidden pb-[0.06em]">
-                <motion.span className={`block ${li ? "lg:pl-[12vw]" : ""}`} initial={{ y: "105%" }} animate={{ y: 0 }} transition={{ duration: 1.2, ease: EASE, delay: delay + li * 0.15 }}>{line}</motion.span>
+              <span key={line} className="block overflow-hidden pb-[0.22em] -mb-[0.2em]">
+                <motion.span className={`block ${li ? "lg:pl-[12vw]" : ""}`} initial={{ y: "135%" }} animate={{ y: 0 }} transition={{ duration: 1.2, ease: EASE, delay: delay + li * 0.15 }}>{line}</motion.span>
               </span>
             ))}
           </h1>
