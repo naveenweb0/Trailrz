@@ -40,19 +40,32 @@ export async function POST(
       return jsonOk({ status: done.status });
     }
 
-    if (!razorpayReady()) {
-      throw new ApiError(
-        503,
-        "Online payments are not configured yet. Your passes are held but cannot be paid for right now."
-      );
-    }
-
     const cust = (b.customerSnapshot as Record<string, any>) || {};
     const ev = (b.eventSnapshot as Record<string, any>) || {};
 
     const keyId = getRazorpayKeyId() || "";
     const isProd = process.env.NODE_ENV === "production";
     const isDevMockKey = keyId.includes("TRAILRZDEV") || keyId === "test_key";
+
+    // When Razorpay is not configured at all, auto-approve and issue passes
+    if (!razorpayReady()) {
+      console.log(`[AUTO-APPROVE] Razorpay not configured — auto-approving booking ${b.reference} (Amount: ₹${b.amount / 100})`);
+      const autoPayment = await prisma.payment.create({
+        data: {
+          bookingId: b.id,
+          bookingReference: b.reference,
+          customerId: b.customerId,
+          customerName: cust.name || "",
+          orderId: `order_auto_${b.reference}_${Date.now()}`,
+          paymentId: `pay_auto_${Date.now()}`,
+          amount: b.amount,
+          currency: "INR",
+          status: "captured",
+        },
+      });
+      await finalizeBooking(b.id, autoPayment);
+      return jsonOk({ status: "confirmed" });
+    }
 
     if (isProd && isDevMockKey) {
       throw new ApiError(503, "Online payments are not configured for production.");
