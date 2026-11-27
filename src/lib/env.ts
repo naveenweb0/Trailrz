@@ -78,9 +78,37 @@ export function getHoldMinutes(): number {
   return isNaN(m) ? 10 : m;
 }
 
+const PRODUCTION_CANONICAL_URL = "https://trailrz.com";
+const LOCALHOST_RE = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i;
+
+function isValidProductionOrigin(url: string): boolean {
+  if (!url || LOCALHOST_RE.test(url)) return false;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    if (process.env.VERCEL_ENV === "production" && parsed.hostname.endsWith(".vercel.app")) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getAppUrl(): string {
-  const explicit = getEnv("APP_URL", false) || getEnv("NEXT_PUBLIC_APP_URL", false);
-  if (explicit) return explicit.replace(/\/+$/, "");
+  const explicit = (getEnv("APP_URL", false) || getEnv("NEXT_PUBLIC_APP_URL", false)).replace(/\/+$/, "");
+
+  if (process.env.NODE_ENV === "production") {
+    if (isValidProductionOrigin(explicit)) {
+      return explicit;
+    }
+    console.error(
+      `[CONFIG ERROR] Invalid or missing APP_URL in production (${explicit || "empty"}). Falling back to canonical ${PRODUCTION_CANONICAL_URL}.`
+    );
+    return PRODUCTION_CANONICAL_URL;
+  }
+
+  if (explicit) return explicit;
   // Vercel sets VERCEL_URL automatically (host only, no protocol)
   const vercelHost = getEnv("VERCEL_URL", false);
   if (vercelHost) return `https://${vercelHost}`;

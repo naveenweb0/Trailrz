@@ -1,8 +1,16 @@
 import { Resend } from "resend";
+import QRCode from "qrcode";
 import { prisma } from "./prisma";
 import { getAppUrl, getMailFrom, getResendApiKey, getSupportEmail } from "./env";
 import { newId } from "./constants";
 import { qrSign } from "./qr";
+
+export interface ResendAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+  contentId: string;
+}
 
 export interface ResendEmailClient {
   emails: {
@@ -11,6 +19,7 @@ export interface ResendEmailClient {
       to: string[];
       subject: string;
       html: string;
+      attachments?: ResendAttachment[];
     }) => Promise<{ data?: { id?: string } | null; error?: { message?: string; name?: string; statusCode?: number | null } | null }>;
   };
 }
@@ -182,16 +191,14 @@ export function confirmationHtml(
     .map((t, idx) => {
       const serial = escapeHtml(t.serial);
       const tier = escapeHtml(t.tierName || "Pass");
-      const token = t.id ? qrSign(t.id) : "";
-      const qrCodeUrl = token
-        ? `${safeBase}/api/tickets/qr?token=${encodeURIComponent(token)}`
-        : "";
+      const cid = t.id ? `qr-${String(t.id).replace(/[^a-zA-Z0-9_-]/g, "")}` : "";
+      const qrCodeSrc = cid ? `cid:${cid}` : "";
       const passHeader =
         displayTickets.length > 1
           ? `<p style="font-size:10px;letter-spacing:2px;color:#df6554;font-weight:bold;margin:${idx === 0 ? "0" : "24px"} 0 10px;">PASS ${idx + 1} OF ${displayTickets.length} · ${tier.toUpperCase()}</p>`
           : "";
 
-      const qrImageHtml = qrCodeUrl
+      const qrImageHtml = qrCodeSrc
         ? `
                 <table
                   role="presentation"
@@ -203,7 +210,7 @@ export function confirmationHtml(
                   <tr>
                     <td style="padding:15px;">
                       <img
-                        src="${escapeHtml(qrCodeUrl)}"
+                        src="${escapeHtml(qrCodeSrc)}"
                         width="210"
                         height="210"
                         alt="Unique TRAILRZ ticket QR code for ${serial}"
@@ -642,13 +649,49 @@ export async function sendNotification(
     return;
   }
 
+async function buildInlineQrAttachments(html: string): Promise<ResendAttachment[]> {
+  const seen = new Set<string>();
+  const attachments: ResendAttachment[] = [];
+  const matches = html.matchAll(/src="cid:(qr-([a-zA-Z0-9_-]+))"/g);
+
+  for (const match of matches) {
+    const contentId = match[1];
+    const ticketId = match[2];
+    if (!contentId || !ticketId || seen.has(contentId)) continue;
+    seen.add(contentId);
+
+    const payload = qrSign(ticketId);
+    const pngBuffer = await QRCode.toBuffer(payload, {
+      type: "png",
+      width: 420,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: {
+        dark: "#171717",
+        light: "#FFFFFF",
+      },
+    });
+
+    attachments.push({
+      filename: `${contentId}.png`,
+      content: pngBuffer,
+      contentType: "image/png",
+      contentId,
+    });
+  }
+
+  return attachments;
+}
+
   try {
     const resend: ResendEmailClient = options?.client ?? new Resend(apiKey);
+    const attachments = await buildInlineQrAttachments(notif.html);
     const result = await resend.emails.send({
       from: mailFrom,
       to: [recipient],
       subject: notif.subject,
       html: notif.html,
+      ...(attachments.length > 0 ? { attachments } : {}),
     });
 
     if (result?.error) {
