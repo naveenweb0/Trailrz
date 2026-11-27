@@ -183,7 +183,7 @@ function DangerZone({ onCleared }) {
           <p className="eyebrow text-[#9e3324]">Danger zone</p>
           <h2 className="font-display text-3xl mt-1">Clear database</h2>
           <p className="text-sm text-mineral mt-1 max-w-2xl">
-            Permanently delete all events, ticket types, bookings, tickets, payments, customers, notifications, gate scans, subscribers, contact messages, webhook events, and audit logs. Staff accounts in Users are preserved.
+            Permanently delete all events, ticket types, bookings, tickets, payments, customers, notifications, gate scans, subscribers, contact messages, webhook events, and audit logs. Staff accounts in Users and the protected demo event (unpublished to Draft) are preserved.
           </p>
         </div>
         <button
@@ -201,7 +201,7 @@ function DangerZone({ onCleared }) {
           <DialogTitle className="font-display text-3xl font-normal">Clear database?</DialogTitle>
           <form onSubmit={handleClear} className="space-y-4">
             <p className="text-sm text-mineral leading-relaxed">
-              This will permanently erase all bookings, tickets, payments, events, customers, notifications, and logs. Only staff accounts (<strong className="text-ink">Users</strong>) and platform settings will remain.
+              This will permanently erase all bookings, tickets, payments, events, customers, notifications, and logs. Staff accounts (<strong className="text-ink">Users</strong>), platform settings, and the protected <strong className="text-ink">Demo Event</strong> (set to Draft / unpublished) will remain.
             </p>
             <label className="block">
               <span className="text-xs font-medium">Type <code className="font-serial">CLEAR DATABASE</code> to confirm</span>

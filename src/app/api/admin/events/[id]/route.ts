@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { EVENT_STAFF, STAFF } from "@/lib/constants";
 import { withInventory, saveTiers, toEventData, EventInput } from "@/lib/admin-events";
 import { audit } from "@/lib/audit";
+import { DEMO_EVENT_SLUG } from "@/lib/demo-event";
 import { jsonOk, handleApiError, ApiError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,17 @@ export async function DELETE(
   try {
     const member = await requireRole(request, ...STAFF);
     const { id } = await params;
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: { id: true, slug: true },
+    });
+    if (!event) {
+      throw new ApiError(404, "Not found");
+    }
+    if (event.slug === DEMO_EVENT_SLUG) {
+      throw new ApiError(409, "The protected demo event cannot be deleted. Unpublish it instead.");
+    }
 
     const bookingCount = await prisma.booking.count({
       where: { eventId: id },

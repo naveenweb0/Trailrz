@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { EVENT_STAFF } from "@/lib/constants";
 import { withInventory, saveTiers, toEventData, EventInput } from "@/lib/admin-events";
 import { audit } from "@/lib/audit";
+import { ensureDemoEvent } from "@/lib/demo-event";
 import { jsonOk, handleApiError, ApiError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     await requireRole(request, ...EVENT_STAFF);
+    await ensureDemoEvent("draft");
 
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get("q") || "").trim();
