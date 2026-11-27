@@ -40,10 +40,14 @@ export default function ClerkAuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     const load = async (attempt = 0) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
       try {
-        const cfg = await (await fetch(`/api/clerk/config`)).json();
+        const cfg = await (await fetch(`/api/clerk/config`, { signal: controller.signal })).json();
         if (cfg.enabled) return cancelled || setConfig(cfg);
-      } catch {}
+      } catch {} finally {
+        clearTimeout(timer);
+      }
       if (cancelled) return;
       if (attempt >= 5) return setUnavailable(true);
       setTimeout(() => load(attempt + 1), 1000);

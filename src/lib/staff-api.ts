@@ -4,7 +4,7 @@ import { API } from "@/lib/api";
 
 export function useStaffApi(): AxiosInstance {
   return useMemo(() => {
-    const i = axios.create({ baseURL: API });
+    const i = axios.create({ baseURL: API, timeout: 15000 });
     i.interceptors.request.use(async (c) => {
       let token = "";
       if (typeof window !== "undefined") {

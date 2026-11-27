@@ -98,7 +98,7 @@ export default function HeroPoster() {
     try {
       const p = new URLSearchParams(window.location.search);
       if (p.has("nopreload")) return 0.1;
-      return sessionStorage.getItem("trz_intro") ? 0.1 : 2.2;
+      return sessionStorage.getItem("trz_intro") ? 0.05 : 1.0;
     } catch {
       return 0.1;
     }

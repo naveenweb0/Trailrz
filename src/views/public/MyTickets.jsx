@@ -15,7 +15,10 @@ export default function MyTickets() {
   const [f, setF] = useState({ reference: params.get("ref") || "", email: "", phone: "" });
   const [busy, setBusy] = useState(false);
   const [bundle, setBundle] = useState(null);
-  const saved = passStore.all();
+  const [saved, setSaved] = useState([]);
+  useEffect(() => {
+    setSaved(passStore.all());
+  }, []);
 
   const lookup = async (body) => {
     setBusy(true);

@@ -56,9 +56,14 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
+                var path = window.location.pathname || '';
+                var isAppRoute = path.indexOf('/admin') === 0 || path.indexOf('/gate') === 0 || path.indexOf('/sign-in') === 0 || path.indexOf('/sign-up') === 0;
                 var p = new URLSearchParams(window.location.search);
-                if (!p.has('nopreload') && !sessionStorage.getItem('trz_intro')) {
+                if (!isAppRoute && !p.has('nopreload') && !sessionStorage.getItem('trz_intro')) {
                   document.documentElement.classList.add('trz-intro-pending');
+                  setTimeout(function() {
+                    document.documentElement.classList.remove('trz-intro-pending');
+                  }, 2500);
                 }
               } catch(e) {}
             `,

@@ -97,11 +97,21 @@ export function Preloader() {
     }
     let tDone;
     let last = -1;
+    const finish = () => {
+      try {
+        sessionStorage.setItem("trz_intro", "1");
+      } catch {}
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.remove("trz-intro-pending");
+      }
+      tDone = setTimeout(() => setShow(false), 60);
+    };
+    const failsafe = setTimeout(finish, 1800);
     // Write the counter straight to the DOM: setting React state on every
     // frame here re-rendered the whole full-screen overlay ~100 times while
     // the hero underneath was still trying to paint.
     const c = animate(0, 100, {
-      duration: 1,
+      duration: 0.65,
       ease: [0.65, 0, 0.35, 1],
       onUpdate: (v) => {
         const next = Math.round(v);
@@ -111,17 +121,13 @@ export function Preloader() {
         if (barRef.current) barRef.current.style.transform = `scaleX(${v / 100})`;
       },
       onComplete: () => {
-        try {
-          sessionStorage.setItem("trz_intro", "1");
-        } catch {}
-        if (typeof document !== "undefined") {
-          document.documentElement.classList.remove("trz-intro-pending");
-        }
-        tDone = setTimeout(() => setShow(false), 100);
+        clearTimeout(failsafe);
+        finish();
       },
     });
     return () => {
       c.stop();
+      clearTimeout(failsafe);
       clearTimeout(tDone);
       if (typeof document !== "undefined") {
         document.documentElement.classList.remove("trz-intro-pending");
@@ -136,7 +142,7 @@ export function Preloader() {
           className="fixed inset-0 z-[300] bg-ink-deep flex flex-col items-center justify-center text-parchment"
           exit={{ clipPath: "inset(0 0 100% 0)" }}
           initial={{ clipPath: "inset(0 0 0% 0)" }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           data-testid="preloader"
         >
           <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: EASE }}>
@@ -171,7 +177,7 @@ export function Scramble({ text, className = "" }) {
     }, 28);
   };
   useEffect(() => () => clearInterval(timer.current), []);
-  return <span className={className} onMouseEnter={run} aria-label={text}><span aria-hidden>{out}</span></span>;
+  return <span className={className} onMouseEnter={run}><span className="sr-only">{text}</span><span aria-hidden>{out}</span></span>;
 }
 
 export function SpotlightHero({ children, image, alt }) {
@@ -297,8 +303,8 @@ export function HorizontalScroll({ items, title }) {
   const x = useTransform(scrollYProgress, [0, 1], [0, -dist]);
   const bar = useTransform(scrollYProgress, [0, 1], [0, 1]);
   return (
-    <section ref={ref} style={{ height: `calc(100vh + ${dist}px)` }} className="relative bg-ink-deep text-parchment dark-zone" aria-label={title}>
-      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
+    <section ref={ref} style={{ height: `calc(100svh + ${dist}px)` }} className="relative bg-ink-deep text-parchment dark-zone" aria-label={title}>
+      <div className="sticky top-0 h-[100svh] overflow-hidden flex flex-col justify-center">
         <div className="wrap flex items-end justify-between mb-8">
           <h2 className="font-display text-5xl sm:text-7xl leading-none">{title}</h2>
           <span className="text-xs uppercase tracking-[0.16em] text-[#8f8574] hidden sm:block">Keep scrolling →</span>

@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import * as THREE from "three";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -22,80 +21,103 @@ export function BeamParticles({ className = "" }) {
   const host = useRef(null);
   useEffect(() => {
     const el = host.current;
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "low-power" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    el.appendChild(renderer.domElement);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
-    camera.position.set(0, 0, 9);
-    const N = window.innerWidth < 768 ? 1400 : 3200;
-    const pos = new Float32Array(N * 3);
-    const seed = new Float32Array(N * 3);
-    for (let i = 0; i < N; i++) {
-      seed[i * 3] = Math.random();
-      seed[i * 3 + 1] = Math.random() * Math.PI * 2;
-      seed[i * 3 + 2] = Math.sqrt(Math.random());
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 64;
-    const g = canvas.getContext("2d");
-    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    grad.addColorStop(0, "rgba(255,230,120,1)");
-    grad.addColorStop(0.4, "rgba(255,210,10,0.6)");
-    grad.addColorStop(1, "rgba(255,210,10,0)");
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 64, 64);
-    const mat = new THREE.PointsMaterial({ size: 0.11, map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9 });
-    const pts = new THREE.Points(geo, mat);
-    const group = new THREE.Group();
-    group.add(pts);
-    group.rotation.z = -0.32;
-    group.position.set(-1.2, 1.4, 0);
-    scene.add(group);
-    const mouse = { x: 0, y: 0 };
-    const onMove = (e) => { mouse.x = e.clientX / window.innerWidth - 0.5; mouse.y = e.clientY / window.innerHeight - 0.5; };
-    window.addEventListener("mousemove", onMove);
-    const size = () => {
-      const w = el.clientWidth, h = el.clientHeight;
-      renderer.setSize(w, h, false);
-      renderer.domElement.style.width = "100%";
-      renderer.domElement.style.height = "100%";
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    };
-    size();
-    window.addEventListener("resize", size);
-    let visible = true;
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; });
-    io.observe(el);
-    let t = 0, id;
-    const frame = () => {
-      id = requestAnimationFrame(frame);
-      if (!visible) return;
-      t += 0.0016;
-      for (let i = 0; i < N; i++) {
-        const u = (seed[i * 3] + t * (0.6 + seed[i * 3 + 2])) % 1;
-        const a = seed[i * 3 + 1] + t * 3;
-        const r = 0.08 + u * 3.2 * seed[i * 3 + 2];
-        pos[i * 3] = -6 + u * 16;
-        pos[i * 3 + 1] = Math.cos(a) * r - u * 1.6;
-        pos[i * 3 + 2] = Math.sin(a) * r;
-      }
-      geo.attributes.position.needsUpdate = true;
-      group.rotation.y += (mouse.x * 0.6 - group.rotation.y) * 0.04;
-      group.rotation.x += (mouse.y * 0.4 - group.rotation.x) * 0.04;
-      renderer.render(scene, camera);
-    };
-    if (reduced()) { frame(); cancelAnimationFrame(id); } else frame();
+    if (!el) return undefined;
+    let disposed = false;
+    let cleanup = () => {};
+
+    import("three")
+      .then((THREE) => {
+        if (disposed || !el) return;
+        let renderer;
+        try {
+          renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "low-power" });
+        } catch {
+          return;
+        }
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        el.appendChild(renderer.domElement);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+        camera.position.set(0, 0, 9);
+        const N = window.innerWidth < 768 ? 1400 : 3200;
+        const pos = new Float32Array(N * 3);
+        const seed = new Float32Array(N * 3);
+        for (let i = 0; i < N; i++) {
+          seed[i * 3] = Math.random();
+          seed[i * 3 + 1] = Math.random() * Math.PI * 2;
+          seed[i * 3 + 2] = Math.sqrt(Math.random());
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 64;
+        const g = canvas.getContext("2d");
+        if (!g) return;
+        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0, "rgba(255,230,120,1)");
+        grad.addColorStop(0.4, "rgba(255,210,10,0.6)");
+        grad.addColorStop(1, "rgba(255,210,10,0)");
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 64, 64);
+        const mat = new THREE.PointsMaterial({ size: 0.11, map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9 });
+        const pts = new THREE.Points(geo, mat);
+        const group = new THREE.Group();
+        group.add(pts);
+        group.rotation.z = -0.32;
+        group.position.set(-1.2, 1.4, 0);
+        scene.add(group);
+        const mouse = { x: 0, y: 0 };
+        const onMove = (e) => { mouse.x = e.clientX / window.innerWidth - 0.5; mouse.y = e.clientY / window.innerHeight - 0.5; };
+        window.addEventListener("mousemove", onMove, { passive: true });
+        const size = () => {
+          const w = Math.max(1, el.clientWidth);
+          const h = Math.max(1, el.clientHeight);
+          renderer.setSize(w, h, false);
+          renderer.domElement.style.width = "100%";
+          renderer.domElement.style.height = "100%";
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+        };
+        size();
+        window.addEventListener("resize", size);
+        let visible = true;
+        const io = typeof IntersectionObserver !== "undefined"
+          ? new IntersectionObserver(([e]) => { visible = e.isIntersecting; })
+          : null;
+        io?.observe(el);
+        let t = 0, id;
+        const frame = () => {
+          id = requestAnimationFrame(frame);
+          if (!visible) return;
+          t += 0.0016;
+          for (let i = 0; i < N; i++) {
+            const u = (seed[i * 3] + t * (0.6 + seed[i * 3 + 2])) % 1;
+            const a = seed[i * 3 + 1] + t * 3;
+            const r = 0.08 + u * 3.2 * seed[i * 3 + 2];
+            pos[i * 3] = -6 + u * 16;
+            pos[i * 3 + 1] = Math.cos(a) * r - u * 1.6;
+            pos[i * 3 + 2] = Math.sin(a) * r;
+          }
+          geo.attributes.position.needsUpdate = true;
+          group.rotation.y += (mouse.x * 0.6 - group.rotation.y) * 0.04;
+          group.rotation.x += (mouse.y * 0.4 - group.rotation.x) * 0.04;
+          renderer.render(scene, camera);
+        };
+        if (reduced()) { frame(); cancelAnimationFrame(id); } else frame();
+        cleanup = () => {
+          cancelAnimationFrame(id);
+          io?.disconnect();
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("resize", size);
+          geo.dispose(); mat.map?.dispose(); mat.dispose(); renderer.dispose();
+          if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement);
+        };
+      })
+      .catch(() => {});
+
     return () => {
-      cancelAnimationFrame(id);
-      io.disconnect();
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("resize", size);
-      geo.dispose(); mat.map.dispose(); mat.dispose(); renderer.dispose();
-      el.removeChild(renderer.domElement);
+      disposed = true;
+      cleanup();
     };
   }, []);
   return <div ref={host} aria-hidden className={`absolute inset-0 pointer-events-none ${className}`} />;
@@ -126,7 +148,7 @@ export function ZoomThrough({ image, words = "GO BE PART OF IT" }) {
     return () => ctx.revert();
   }, []);
   return (
-    <section ref={root} className="relative z-20 h-screen overflow-hidden bg-black" aria-label="Go be part of it" data-testid="zoom-through">
+    <section ref={root} className="relative z-20 h-[100svh] overflow-hidden bg-black" aria-label="Go be part of it" data-testid="zoom-through">
       <img src={image} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover" />
       <div ref={layer} className="absolute inset-0 bg-black flex items-center justify-center mix-blend-multiply will-change-transform" style={{ transformOrigin: "50% 52%" }}>
         <p className="font-display text-white text-[19vw] leading-[0.8] text-center tracking-[-0.04em] select-none">{words.split(" ").slice(0, 2).join(" ")}<br />{words.split(" ").slice(2).join(" ")}</p>
@@ -164,7 +186,7 @@ export function CardFan({ cards, title }) {
     return () => ctx.revert();
   }, []);
   return (
-    <section ref={root} className="relative z-20 h-screen overflow-hidden bg-beam flex flex-col items-center justify-center" aria-label={title} data-testid="card-fan">
+    <section ref={root} className="relative z-20 h-[100svh] overflow-hidden bg-beam flex flex-col items-center justify-center" aria-label={title} data-testid="card-fan">
       <h2 className="fan-title font-display text-ink text-6xl sm:text-8xl lg:text-9xl text-center leading-none absolute top-[12%] px-4">{title}</h2>
       <div className="relative w-[46vw] max-w-[240px] aspect-[3/4] mt-24">
         {cards.map((c) => (

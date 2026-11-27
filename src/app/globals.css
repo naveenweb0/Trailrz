@@ -136,6 +136,17 @@
   .recharts-text { font-family: "Plus Jakarta Sans", sans-serif; font-size: 11px; }
 }
 
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  .grain {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

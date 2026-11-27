@@ -135,6 +135,7 @@ function useSmoothScroll() {
   const { pathname } = useLocation();
   useEffect(() => {
     if (reduce || typeof window === "undefined") return undefined;
+    if (!window.matchMedia("(pointer: fine)").matches) return undefined;
     const lenis = new Lenis({
       lerp: 0.1,
       smoothWheel: true,

@@ -733,7 +733,7 @@ export default function EventDetail() {
           </div>
         </section>
       )}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-parchment border-t hairline px-5 py-3 flex items-center justify-between gap-4 no-print">
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-parchment border-t hairline px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-4 no-print">
         <div>
           <p className="text-xs text-mineral">{e.min_price === 0 ? "Free" : "From"}</p>
           <p className="tabular font-medium">{e.min_price ? inr(e.min_price) : ""}</p>

@@ -102,11 +102,24 @@ function useCountdown(until) {
 }
 
 const loadRazorpay = () => new Promise((res, rej) => {
+  if (typeof window === "undefined") return rej(new Error("Browser required"));
   if (window.Razorpay) return res();
   const s = document.createElement("script");
   s.src = "https://checkout.razorpay.com/v1/checkout.js";
-  s.onload = res;
-  s.onerror = () => rej(new Error("Could not load the payment window"));
+  s.async = true;
+  const timer = setTimeout(() => {
+    s.remove();
+    rej(new Error("Payment window timed out. Check your connection and try again."));
+  }, 15000);
+  s.onload = () => {
+    clearTimeout(timer);
+    res();
+  };
+  s.onerror = () => {
+    clearTimeout(timer);
+    s.remove();
+    rej(new Error("Could not load the payment window"));
+  };
   document.body.appendChild(s);
 });
 
@@ -215,8 +228,9 @@ function HoldLoader({ id }) {
 
   if (!mounted) return <Loading />;
   if (!k) return <Empty title="This checkout session has ended." action={<Link to="/discover" className="btn-line">Discover experiences</Link>}>Holds are tied to the browser tab they were created in.</Empty>;
-  if (loading || !data) return <Loading />;
+  if (loading) return <Loading />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
+  if (!data) return <Loading />;
   return <PayStep b={data} k={k} reload={reload} />;
 }
 

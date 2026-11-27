@@ -17,7 +17,8 @@ export function Reveal({ children, delay = 0, y = 20, className = "", as = "div"
 
 export function SplitWords({ text, className = "", delay = 0, step = 0.045, accent = {} }) {
   return (
-    <span className={className} aria-label={text}>
+    <span className={className}>
+      <span className="sr-only">{text}</span>
       {text.split(" ").map((w, i) => (
         <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.18em] -mb-[0.18em]" aria-hidden>
           <motion.span className={`inline-block ${accent[i] || ""}`} initial={{ y: "120%", opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }}
@@ -125,6 +126,10 @@ export function Counter({ to, className = "" }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setN(to);
+      return undefined;
+    }
     const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       const t0 = performance.now();
