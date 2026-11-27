@@ -150,6 +150,88 @@ function Users() {
   );
 }
 
+function DangerZone({ onCleared }) {
+  const { http, me } = useStaff();
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  if (me?.role !== "superadmin") return null;
+
+  const handleClear = async (e) => {
+    e.preventDefault();
+    if (confirmText.trim() !== "CLEAR DATABASE") return;
+    setBusy(true);
+    try {
+      const { data } = await http.post("/admin/database/clear", { confirm: confirmText.trim() });
+      const total = Object.values(data?.deleted || {}).reduce((acc, n) => acc + Number(n || 0), 0);
+      toast.success(`Database cleared (${total} records deleted). Staff users preserved.`);
+      setConfirmText("");
+      setOpen(false);
+      onCleared?.();
+    } catch (err) {
+      toast.error(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-10 border border-[#d99b92] bg-[#fdf5f3] p-5" data-testid="admin-danger-zone">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="eyebrow text-[#9e3324]">Danger zone</p>
+          <h2 className="font-display text-3xl mt-1">Clear database</h2>
+          <p className="text-sm text-mineral mt-1 max-w-2xl">
+            Permanently delete all events, ticket types, bookings, tickets, payments, customers, notifications, gate scans, subscribers, contact messages, webhook events, and audit logs. Staff accounts in Users are preserved.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => { setConfirmText(""); setOpen(true); }}
+          data-testid="clear-database-open"
+          className="h-10 px-5 text-sm font-medium bg-[#9e3324] text-white hover:bg-[#7d271b] transition-colors"
+        >
+          Clear database
+        </button>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="bg-parchment max-w-md">
+          <DialogTitle className="font-display text-3xl font-normal">Clear database?</DialogTitle>
+          <form onSubmit={handleClear} className="space-y-4">
+            <p className="text-sm text-mineral leading-relaxed">
+              This will permanently erase all bookings, tickets, payments, events, customers, notifications, and logs. Only staff accounts (<strong className="text-ink">Users</strong>) and platform settings will remain.
+            </p>
+            <label className="block">
+              <span className="text-xs font-medium">Type <code className="font-serial">CLEAR DATABASE</code> to confirm</span>
+              <input
+                required
+                data-testid="clear-database-confirm-input"
+                className="field mt-1 bg-surface font-serial"
+                placeholder="CLEAR DATABASE"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+              />
+            </label>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setOpen(false)} className="btn-line h-10 text-sm">Cancel</button>
+              <button
+                type="submit"
+                disabled={busy || confirmText.trim() !== "CLEAR DATABASE"}
+                data-testid="clear-database-submit"
+                className="h-10 px-5 text-sm font-medium bg-[#9e3324] text-white disabled:opacity-40"
+              >
+                {busy ? "Clearing…" : "Permanently clear"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const { http } = useStaff();
   const [s, setS] = useState(null);
@@ -188,6 +270,7 @@ export function SettingsPage() {
         <DataTable loading={audit.loading} error={audit.error} testid="audit-table" rows={(audit.data?.items || []).map((a, i) => ({ ...a, id: a.id || i }))} empty="No activity yet."
           cols={[{ label: "When", nowrap: true, render: (a) => fmtDT(a.at) }, { label: "Who", render: (a) => a.actor_email || a.actor_id }, { label: "Action", render: (a) => a.action }, { label: "Target", render: (a) => <span className="font-serial text-xs">{a.target}</span> }]} />
       </section>
+      <DangerZone onCleared={audit.reload} />
     </div>
   );
 }
