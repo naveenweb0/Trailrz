@@ -38,6 +38,10 @@ export function getMailFrom(): string {
   return getEnv("MAIL_FROM", false);
 }
 
+export function getSupportEmail(): string {
+  return getEnv("SUPPORT_EMAIL", false).trim() || "contact@trailrz.com";
+}
+
 export function getCloudinaryCloudName(): string {
   return getEnv("CLOUDINARY_CLOUD_NAME", false);
 }

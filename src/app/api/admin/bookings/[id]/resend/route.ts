@@ -29,7 +29,13 @@ export async function POST(
         where: { id },
         include: {
           tickets: {
-            select: { serial: true, tierName: true },
+            select: {
+              id: true,
+              serial: true,
+              tierName: true,
+              holderName: true,
+              status: true,
+            },
           },
         },
       });

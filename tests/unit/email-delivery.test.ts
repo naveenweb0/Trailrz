@@ -14,6 +14,8 @@ import { finalizeBooking } from "@/lib/booking";
 import { POST as webhookPost } from "@/app/api/payments/razorpay/webhook/route";
 import { POST as retryPost } from "@/app/api/admin/notifications/[nid]/retry/route";
 import { POST as resendPost } from "@/app/api/admin/bookings/[id]/resend/route";
+import { GET as qrGet } from "@/app/api/tickets/qr/route";
+import { qrSign } from "@/lib/qr";
 import { createStaffSessionToken } from "@/lib/session";
 
 process.env.QR_SIGNING_SECRET = "test-secret-key-32-chars-long-abcde";
@@ -761,5 +763,103 @@ describe("Production Email Delivery & Booking Reliability (Mocked)", () => {
         []
       ).includes("https://trailrz.test/my-tickets")
     );
+  });
+
+  test("13. Official TRAILRZ template renders all dynamic variables, QR URL, and Open your passes button", () => {
+    const html = confirmationHtml(
+      {
+        reference: "TRZ-OFF123",
+        accessKey: "K-ACCESS-999",
+        amount: 250000,
+        paymentStatus: "paid",
+        eventSnapshot: {
+          title: "Sunset Acoustic Session",
+          venue: "The Courtyard",
+          city: "Chandigarh",
+          address: "Sector 17 Plaza, Chandigarh",
+          start_at: "2026-12-12T13:30:00.000Z",
+          cover_image: { url: "https://cdn.trailrz.com/events/sunset.jpg" },
+        },
+        customerSnapshot: {
+          name: "Riya Sharma",
+          email: "riya@example.com",
+        },
+      },
+      [
+        {
+          id: "tkt-uuid-101",
+          serial: "TRZ-PASS-101",
+          tierName: "VIP Lounge",
+          status: "VALID",
+        },
+      ]
+    );
+
+    const expectedToken = qrSign("tkt-uuid-101");
+    assert.ok(html.includes("Good plans."));
+    assert.ok(html.includes("Hey Riya Sharma,"));
+    assert.ok(html.includes("https://cdn.trailrz.com/events/sunset.jpg"));
+    assert.ok(html.includes("Sunset Acoustic Session"));
+    assert.ok(html.includes("The Courtyard, Chandigarh"));
+    assert.ok(html.includes("Sector 17 Plaza, Chandigarh"));
+    assert.ok(html.includes("TRZ-OFF123"));
+    assert.ok(html.includes("TRZ-PASS-101"));
+    assert.ok(html.includes("VIP Lounge"));
+    assert.ok(html.includes("₹2,500"));
+    assert.ok(html.includes("✓ PAID"));
+    assert.ok(html.includes(`https://trailrz.test/api/tickets/qr?token=${encodeURIComponent(expectedToken)}`));
+    assert.ok(html.includes("https://trailrz.test/my-tickets?ref=TRZ-OFF123&amp;key=K-ACCESS-999"));
+    assert.ok(html.includes("Open your passes"));
+    assert.ok(html.includes("contact@trailrz.com"));
+  });
+
+  test("14. Multi-ticket booking renders unique QR code for every valid ticket", () => {
+    const html = confirmationHtml(
+      {
+        reference: "TRZ-MULTI1",
+        accessKey: "K-MULTI",
+        amount: 300000,
+        paymentStatus: "paid",
+        eventSnapshot: {
+          title: "Rooftop Jazz",
+          venue: "Skyline",
+          city: "Mohali",
+          start_at: "2026-12-20T14:00:00.000Z",
+        },
+        customerSnapshot: { name: "Kabir", email: "kabir@example.com" },
+      },
+      [
+        { id: "tkt-a", serial: "TRZ-A1", tierName: "VIP", status: "VALID" },
+        { id: "tkt-b", serial: "TRZ-B2", tierName: "General", status: "VALID" },
+        { id: "tkt-c", serial: "TRZ-C3", tierName: "VIP", status: "VOID" },
+      ]
+    );
+
+    assert.ok(html.includes(encodeURIComponent(qrSign("tkt-a"))));
+    assert.ok(html.includes(encodeURIComponent(qrSign("tkt-b"))));
+    assert.equal(html.includes(encodeURIComponent(qrSign("tkt-c"))), false);
+    assert.ok(html.includes("PASS 1 OF 2"));
+    assert.ok(html.includes("PASS 2 OF 2"));
+    assert.ok(html.includes("TRZ-A1, TRZ-B2"));
+    assert.ok(html.includes("VIP, General"));
+  });
+
+  test("15. QR image endpoint returns PNG for valid signed token and 403 for invalid token", async () => {
+    const token = qrSign("tkt-qr-test-1");
+    const validReq = new NextRequest(
+      `http://localhost:3000/api/tickets/qr?token=${encodeURIComponent(token)}`
+    );
+    const validRes = await qrGet(validReq);
+    assert.equal(validRes.status, 200);
+    assert.equal(validRes.headers.get("content-type"), "image/png");
+    const buf = Buffer.from(await validRes.arrayBuffer());
+    // PNG magic bytes: 89 50 4E 47
+    assert.deepEqual(Array.from(buf.subarray(0, 4)), [0x89, 0x50, 0x4e, 0x47]);
+
+    const badReq = new NextRequest(
+      "http://localhost:3000/api/tickets/qr?token=TRZ1.tkt-qr-test-1.tampered"
+    );
+    const badRes = await qrGet(badReq);
+    assert.equal(badRes.status, 403);
   });
 });
