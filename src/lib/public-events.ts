@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { availability, remaining } from "./inventory";
+import { normalizeBundleOverrides } from "./pricing";
 
 export function tierPublic(t: any) {
   const r = remaining(t);
@@ -15,6 +16,9 @@ export function tierPublic(t: any) {
     name: t.name,
     description: t.description || "",
     price: t.price,
+    bundle_enabled: Boolean(t.bundleEnabled),
+    two_ticket_price: t.twoTicketPrice ?? null,
+    bundle_prices: normalizeBundleOverrides(t.bundlePrices),
     max_per_booking: t.maxPerBooking ?? 10,
     availability: avail,
     remaining: avail === "limited" ? r : null,
@@ -53,6 +57,7 @@ export function eventCard(e: any, tiers: any[]) {
     is_original: e.isOriginal || false,
     short_description: e.shortDescription || "",
     city: e.city,
+    state: e.state || "",
     venue: e.venue,
     start_at: e.startAt ? new Date(e.startAt).toISOString() : null,
     end_at: e.endAt ? new Date(e.endAt).toISOString() : null,

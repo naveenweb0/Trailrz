@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api, useLoad, errMsg, inr, fmtDay, fmtTime, passStore } from "@/lib/api";
+import { calculateBundleQuantityPrice } from "@/lib/pricing";
 import { useSeo } from "@/lib/seo";
 import { Loading, ErrorState, Empty } from "@/components/common/States";
 
@@ -23,7 +24,7 @@ function Summary({ title, venue, start, items, amount }) {
       <p className="text-sm text-mineral mt-2">{fmtDay(start)}, {fmtTime(start)} · {venue}</p>
       <div className="mt-6 border-t hairline">
         {items.map((i) => (
-          <div key={i.name} className="flex justify-between py-3 border-b hairline text-sm"><span>{i.quantity} × {i.name}</span><span className="tabular">{inr(i.unit_price * i.quantity)}</span></div>
+          <div key={i.name} className="flex justify-between py-3 border-b hairline text-sm"><span>{i.quantity} × {i.name}</span><span className="tabular">{inr(i.subtotal ?? i.unit_price * i.quantity)}</span></div>
         ))}
       </div>
       <div className="flex justify-between items-baseline mt-5"><span className="text-sm">Total</span><span className="font-display text-3xl tabular" data-testid="summary-total">{inr(amount)}</span></div>
@@ -41,9 +42,15 @@ function DetailsStep({ slug, sel }) {
   if (loading) return <Loading />;
   if (error) return <ErrorState message={error} />;
   const items = sel.map(([id, q]) => ({ t: e.tiers.find((t) => t.id === id), q })).filter((x) => x.t && x.q > 0)
-    .map(({ t, q }) => ({ ticket_type_id: t.id, name: t.name, unit_price: t.price, quantity: q }));
+    .map(({ t, q }) => ({
+      ticket_type_id: t.id,
+      name: t.name,
+      unit_price: t.price,
+      quantity: q,
+      subtotal: calculateBundleQuantityPrice(t, q),
+    }));
   if (!items.length) return <Empty title="No passes selected." action={<Link className="btn-line" to={`/events/${slug}`}>Choose passes</Link>} />;
-  const amount = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const amount = items.reduce((s, i) => s + i.subtotal, 0);
   const submit = async (ev) => {
     ev.preventDefault();
     setBusy(true);

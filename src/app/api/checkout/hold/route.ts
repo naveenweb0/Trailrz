@@ -5,11 +5,12 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { code, digits, holdExpiry } from "@/lib/constants";
 import { reserve, release, releaseExpiredHolds } from "@/lib/inventory";
 import { bookingPublic } from "@/lib/booking";
+import { calculateBundleQuantityPrice } from "@/lib/pricing";
 import { jsonOk, handleApiError, ApiError } from "@/lib/api-response";
 
 const itemSchema = z.object({
   ticket_type_id: z.string().min(1),
-  quantity: z.number().int().min(1).max(10),
+  quantity: z.number().int().min(1).max(50),
 });
 
 const holdSchema = z.object({
@@ -49,8 +50,8 @@ export async function POST(request: NextRequest) {
     }
 
     const totalQty = parsed.data.items.reduce((acc, it) => acc + it.quantity, 0);
-    if (totalQty > 10) {
-      throw new ApiError(422, "A maximum of 10 passes can be reserved in one booking");
+    if (totalQty > 50) {
+      throw new ApiError(422, "A maximum of 50 passes can be reserved in one booking");
     }
 
     const event = await prisma.event.findFirst({
@@ -108,12 +109,13 @@ export async function POST(request: NextRequest) {
         throw new ApiError(422, `${tier.name}: maximum ${tier.maxPerBooking} per booking`);
       }
 
+      const subtotal = calculateBundleQuantityPrice(tier, it.quantity);
       bookingItems.push({
         ticket_type_id: tier.id,
         name: tier.name,
         unit_price: tier.price,
         quantity: it.quantity,
-        subtotal: tier.price * it.quantity,
+        subtotal,
       });
     }
 
@@ -179,6 +181,7 @@ export async function POST(request: NextRequest) {
           end_at: event.endAt ? event.endAt.toISOString() : null,
           venue: event.venue,
           city: event.city,
+          state: event.state || "",
           address: event.address || "",
           cover_image: event.coverImage,
         },

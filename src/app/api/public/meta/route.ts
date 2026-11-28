@@ -32,12 +32,15 @@ export async function GET(_request: NextRequest) {
       console.warn("DB notice in /api/public/meta, using fallback platform defaults");
     }
 
+    const baseCities = setting?.supportedCities || ["Chandigarh", "Mohali", "Panchkula"];
+    const mergedCities = Array.from(new Set([...baseCities, ...cities]));
+
     return jsonOk(
       {
         categories: CATEGORIES,
         moods: MOODS,
         cities_with_events: cities,
-        supported_cities: setting?.supportedCities || ["Chandigarh", "Mohali", "Panchkula"],
+        supported_cities: mergedCities,
         support_email: setting?.supportEmail || "",
         support_phone: setting?.supportPhone || "",
         socials: setting?.socials || {},

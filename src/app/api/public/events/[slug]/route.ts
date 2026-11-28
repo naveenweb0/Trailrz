@@ -60,7 +60,9 @@ export async function GET(
       who_should_attend: e.whoShouldAttend || [],
       what_to_expect: e.whatToExpect || [],
       included: e.included || [],
-      faqs: e.faqs,
+      faqs: Array.isArray(e.faqs)
+        ? (e.faqs as any[]).filter((f) => f && String(f.q || "").trim() && String(f.a || "").trim())
+        : [],
       cancellation_policy: e.cancellationPolicy,
       age_restriction: e.ageRestriction,
       booking_opens_at: openIso,

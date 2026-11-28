@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { api, useLoad, inr, fmtDay, fmtTime, fmtDate } from "@/lib/api";
 import { useSeo } from "@/lib/seo";
+import { calculateBundleQuantityPrice, generateBundleSchedule } from "@/lib/pricing";
 import { AvailTag, OriginalMark, EventPortrait } from "@/components/public/EventBits";
 import { Loading, ErrorState, Empty } from "@/components/common/States";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -52,6 +53,9 @@ function splitTaggedItems(list = [], prefix) {
 function TierRow({ t, qty, setQty, disabled }) {
   const can = t.on_sale && t.availability !== "sold_out" && !disabled;
   const max = Math.min(t.max_per_booking, t.remaining ?? t.max_per_booking);
+  const rowPrice = qty > 0 ? calculateBundleQuantityPrice(t, qty) : t.price;
+  const bundleSchedule = t.bundle_enabled ? generateBundleSchedule(t).slice(0, 6) : [];
+
   return (
     <div
       className={`py-5 border-b hairline transition-colors ${qty > 0 ? "bg-tint/45 -mx-3 px-3 border-l-2 border-l-beam" : ""}`}
@@ -61,7 +65,7 @@ function TierRow({ t, qty, setQty, disabled }) {
         <div className="min-w-0">
           <p className="font-medium text-ink">{t.name}</p>
           {t.description && <p className="text-sm text-mineral mt-1">{t.description}</p>}
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             {t.on_sale ? (
               <AvailTag a={t.availability} remaining={t.remaining} />
             ) : (
@@ -71,10 +75,45 @@ function TierRow({ t, qty, setQty, disabled }) {
                   : "Sales closed"}
               </span>
             )}
+            {t.bundle_enabled && (
+              <span className="text-[11px] font-medium px-2 py-0.5 bg-tint border hairline text-ink">
+                Bundle pricing
+              </span>
+            )}
           </div>
         </div>
-        <p className="tabular font-semibold text-base whitespace-nowrap">{inr(t.price)}</p>
+        <div className="text-right whitespace-nowrap">
+          <p className="tabular font-semibold text-base" data-testid={`tier-price-display-${t.id}`}>
+            {inr(rowPrice)}
+          </p>
+          {t.bundle_enabled && qty > 1 && (
+            <p className="text-[11px] text-mineral tabular">
+              {inr(Math.round(rowPrice / qty))} / pass
+            </p>
+          )}
+        </div>
       </div>
+
+      {t.bundle_enabled && bundleSchedule.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-1.5" data-testid={`tier-bundle-pills-${t.id}`}>
+          {bundleSchedule.map((b) => (
+            <button
+              key={b.quantity}
+              type="button"
+              disabled={!can || b.quantity > max}
+              onClick={() => setQty(b.quantity)}
+              className={`text-[11px] px-2 py-1 border tabular transition-colors ${
+                qty === b.quantity
+                  ? "bg-ink text-parchment border-ink"
+                  : "bg-parchment/70 hairline text-mineral hover:border-ink hover:text-ink"
+              } disabled:opacity-40`}
+            >
+              {b.quantity} for {inr(b.price)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {can && (
         <div className="flex items-center gap-4 mt-4" role="group" aria-label={`${t.name} quantity`}>
           <button
@@ -108,7 +147,8 @@ function TicketPanel({ e }) {
   const [sel, setSel] = useState({});
   const nav = useNavigate();
   const count = Object.values(sel).reduce((a, b) => a + b, 0);
-  const total = e.tiers.reduce((s, t) => s + (sel[t.id] || 0) * t.price, 0);
+  const maxTotal = Math.max(10, ...(e.tiers || []).map((t) => t.max_per_booking || 10));
+  const total = e.tiers.reduce((s, t) => s + calculateBundleQuantityPrice(t, sel[t.id] || 0), 0);
   const go = () =>
     nav(
       `/checkout?event=${e.slug}&sel=${Object.entries(sel)
@@ -162,11 +202,11 @@ function TicketPanel({ e }) {
               key={t.id}
               t={t}
               qty={sel[t.id] || 0}
-              disabled={!e.booking_open || (count >= 10 && !sel[t.id])}
+              disabled={!e.booking_open || (count >= maxTotal && !sel[t.id])}
               setQty={(q) =>
                 setSel({
                   ...sel,
-                  [t.id]: Math.max(0, Math.min(q, 10 - count + (sel[t.id] || 0))),
+                  [t.id]: Math.max(0, Math.min(q, maxTotal - count + (sel[t.id] || 0))),
                 })
               }
             />
@@ -664,7 +704,7 @@ export default function EventDetail() {
             <div>
               <h2 className="eyebrow mb-2">Venue</h2>
               <p className="font-medium">{e.venue}</p>
-              <p className="text-mineral">{e.address || e.city}</p>
+              <p className="text-mineral">{e.address || (e.state ? `${e.city}, ${e.state}` : e.city)}</p>
               {(e.lat && e.lng) || e.address ? (
                 <a
                   className="link-u text-sm mt-2 inline-block"

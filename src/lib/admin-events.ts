@@ -5,12 +5,20 @@ import { razorpayReady } from "./razorpay";
 import { resendReady } from "./resend";
 import { cloudinaryReady } from "./cloudinary";
 import { ApiError } from "./api-response";
+import { findIndianCity } from "./indian-cities";
+import {
+  normalizeBundleOverrides,
+  validateBundlePricing,
+} from "./pricing";
 
 export interface TierInput {
   id?: string | null;
   name: string;
   description?: string;
   price: number; // in rupees from API, will convert to paise
+  bundle_enabled?: boolean;
+  two_ticket_price?: number | null; // in rupees from API, will convert to paise
+  bundle_prices?: Record<string, number>; // in rupees from API, will convert to paise
   capacity: number;
   max_per_booking?: number;
   sale_starts_at?: string | null;
@@ -29,6 +37,7 @@ export interface EventInput {
   description?: string;
   organizer?: string;
   city: string;
+  state?: string;
   venue: string;
   address?: string;
   lat?: number | null;
@@ -76,6 +85,9 @@ export async function withInventory(e: any) {
     name: t.name,
     description: t.description,
     price: t.price, // paise
+    bundle_enabled: Boolean(t.bundleEnabled),
+    two_ticket_price: t.twoTicketPrice ?? null, // paise
+    bundle_prices: normalizeBundleOverrides(t.bundlePrices), // paise
     capacity: t.capacity,
     sold: t.sold,
     reserved: t.reserved,
@@ -105,6 +117,7 @@ export async function withInventory(e: any) {
     description: e.description || "",
     organizer: e.organizer || "",
     city: e.city,
+    state: e.state || "",
     venue: e.venue,
     address: e.address || "",
     lat: e.lat,
@@ -146,7 +159,34 @@ export async function saveTiers(eventId: string, tiers: TierInput[]) {
 
   for (let i = 0; i < tiers.length; i++) {
     const t = tiers[i];
-    const priceInPaise = Math.round(t.price * 100);
+    const priceInPaise = Math.round(Number(t.price || 0) * 100);
+    const bundleEnabled = Boolean(t.bundle_enabled);
+    const twoTicketPriceInPaise =
+      bundleEnabled && t.two_ticket_price !== null && t.two_ticket_price !== undefined && String(t.two_ticket_price) !== ""
+        ? Math.round(Number(t.two_ticket_price) * 100)
+        : null;
+    const rawOverridesPaise: Record<string, number> = {};
+    if (bundleEnabled && t.bundle_prices && typeof t.bundle_prices === "object") {
+      for (const [k, v] of Object.entries(t.bundle_prices)) {
+        if (v !== null && v !== undefined && String(v) !== "") {
+          rawOverridesPaise[k] = Math.round(Number(v) * 100);
+        }
+      }
+    }
+    const maxPerBooking = Number(t.max_per_booking ?? 10);
+
+    const pricingErr = validateBundlePricing({
+      price: priceInPaise,
+      bundleEnabled,
+      twoTicketPrice: twoTicketPriceInPaise,
+      maxPerBooking,
+      bundlePrices: rawOverridesPaise,
+    });
+    if (pricingErr) {
+      throw new ApiError(422, `${t.name || "Ticket tier"}: ${pricingErr}`);
+    }
+
+    const bundlePrices = bundleEnabled ? normalizeBundleOverrides(rawOverridesPaise) : {};
     const saleStartsAt = t.sale_starts_at ? new Date(t.sale_starts_at) : null;
     const saleEndsAt = t.sale_ends_at ? new Date(t.sale_ends_at) : null;
 
@@ -165,8 +205,11 @@ export async function saveTiers(eventId: string, tiers: TierInput[]) {
           name: t.name,
           description: t.description || "",
           price: priceInPaise,
+          bundleEnabled,
+          twoTicketPrice: twoTicketPriceInPaise,
+          bundlePrices,
           capacity: t.capacity,
-          maxPerBooking: t.max_per_booking ?? 10,
+          maxPerBooking,
           saleStartsAt,
           saleEndsAt,
           active: t.active ?? true,
@@ -184,8 +227,11 @@ export async function saveTiers(eventId: string, tiers: TierInput[]) {
           name: t.name,
           description: t.description || "",
           price: priceInPaise,
+          bundleEnabled,
+          twoTicketPrice: twoTicketPriceInPaise,
+          bundlePrices,
           capacity: t.capacity,
-          maxPerBooking: t.max_per_booking ?? 10,
+          maxPerBooking,
           saleStartsAt,
           saleEndsAt,
           active: t.active ?? true,
@@ -219,6 +265,12 @@ export function toEventData(body: EventInput) {
   }
 
   const slug = slugify(body.slug || body.title);
+  const cityName = body.city.trim();
+  const matchedCity = findIndianCity(cityName);
+
+  const cleanFaqs = (body.faqs || [])
+    .filter((f) => f && String(f.q || "").trim().length > 0 && String(f.a || "").trim().length > 0)
+    .map((f) => ({ q: String(f.q).trim(), a: String(f.a).trim() }));
 
   return {
     title: body.title.trim(),
@@ -230,11 +282,12 @@ export function toEventData(body: EventInput) {
     shortDescription: body.short_description || "",
     description: body.description || "",
     organizer: body.organizer || "",
-    city: body.city.trim(),
+    city: matchedCity ? matchedCity.city : cityName,
+    state: (body.state || "").trim() || matchedCity?.state || "",
     venue: body.venue.trim(),
     address: body.address || "",
-    lat: body.lat ?? null,
-    lng: body.lng ?? null,
+    lat: body.lat ?? matchedCity?.lat ?? null,
+    lng: body.lng ?? matchedCity?.lng ?? null,
     startAt: new Date(body.start_at),
     endAt: body.end_at ? new Date(body.end_at) : null,
     bookingOpensAt: body.booking_opens_at ? new Date(body.booking_opens_at) : null,
@@ -250,7 +303,7 @@ export function toEventData(body: EventInput) {
     whoShouldAttend: (body.who_should_attend || []).filter((w) => w.trim().length > 0),
     whatToExpect: (body.what_to_expect || []).filter((w) => w.trim().length > 0),
     included: (body.included || []).filter((x) => x.trim().length > 0),
-    faqs: body.faqs || [],
+    faqs: cleanFaqs,
     cancellationPolicy: body.cancellation_policy || "",
     ageRestriction: body.age_restriction || "",
     gateKey: body.gate_key ? body.gate_key.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "") : `gate-${slug}`,
