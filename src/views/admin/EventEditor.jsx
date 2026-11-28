@@ -11,7 +11,6 @@ import { PageHead, Pill } from "@/components/admin/AdminKit";
 import { Loading, ErrorState } from "@/components/common/States";
 import { findIndianCity, searchIndianCities } from "@/lib/indian-cities";
 import {
-  calculateAdditionalTicketPrice,
   generateBundleSchedule,
   validateBundlePricing,
 } from "@/lib/pricing";
@@ -29,6 +28,7 @@ const blankTier = () => ({
   bundle_enabled: false,
   two_ticket_price: "",
   bundle_prices: {},
+  bundle_rule: { mode: "fixed_extra", extraTicketPrice: "" },
   capacity: 50,
   max_per_booking: 6,
   sale_starts_at: "",
@@ -96,6 +96,7 @@ function fromApi(e) {
         }
       }
     }
+    const rawRuleExtra = t.bundle_rule?.extraTicketPrice;
     return {
       ...t,
       price: t.price / 100,
@@ -105,6 +106,13 @@ function fromApi(e) {
           ? t.two_ticket_price / 100
           : "",
       bundle_prices: overridesRupees,
+      bundle_rule: {
+        mode: t.bundle_rule?.mode || "fixed_extra",
+        extraTicketPrice:
+          rawRuleExtra !== null && rawRuleExtra !== undefined
+            ? Number(rawRuleExtra) / 100
+            : "",
+      },
       sale_starts_at: toLocalInput(t.sale_starts_at),
       sale_ends_at: toLocalInput(t.sale_ends_at),
     };
@@ -136,15 +144,26 @@ function toApi(f) {
         }
       }
     }
+    const twoFromBundle = bundlePrices["2"];
+    const rawRuleExtra = t.bundle_rule?.extraTicketPrice;
     return {
       ...t,
       price: Number(t.price),
       bundle_enabled: Boolean(t.bundle_enabled),
       two_ticket_price:
-        t.bundle_enabled && t.two_ticket_price !== "" && t.two_ticket_price !== null && t.two_ticket_price !== undefined
+        t.bundle_enabled && twoFromBundle !== undefined
+          ? Number(twoFromBundle)
+          : t.bundle_enabled && t.two_ticket_price !== "" && t.two_ticket_price !== null && t.two_ticket_price !== undefined
           ? Number(t.two_ticket_price)
           : null,
       bundle_prices: bundlePrices,
+      bundle_rule: {
+        mode: t.bundle_rule?.mode || "fixed_extra",
+        extraTicketPrice:
+          rawRuleExtra !== "" && rawRuleExtra !== null && rawRuleExtra !== undefined && Number.isFinite(Number(rawRuleExtra))
+            ? Number(rawRuleExtra)
+            : null,
+      },
       capacity: Number(t.capacity),
       max_per_booking: Number(t.max_per_booking),
       sale_starts_at: fromLocalInput(t.sale_starts_at),
@@ -363,38 +382,61 @@ function MediaPicker({ onAdd, testid, multiple = true, label = "Upload" }) {
   );
 }
 
-function TierBundlePricing({ t, index, onUpdate }) {
+function TierBundlePricing({ t, index, onUpdate, onUpdateMany }) {
   const singlePrice = Number(t.price) || 0;
-  const twoPrice =
-    t.two_ticket_price !== "" && t.two_ticket_price !== null && t.two_ticket_price !== undefined
-      ? Number(t.two_ticket_price)
-      : singlePrice * 2;
-  const additional = calculateAdditionalTicketPrice(singlePrice, twoPrice);
+  const bundlePrices = t.bundle_prices || {};
+  const twoVal =
+    bundlePrices["2"] !== undefined && bundlePrices["2"] !== ""
+      ? bundlePrices["2"]
+      : t.two_ticket_price !== "" && t.two_ticket_price !== null && t.two_ticket_price !== undefined
+      ? t.two_ticket_price
+      : "";
+  const threeVal = bundlePrices["3"] !== undefined ? bundlePrices["3"] : "";
+  const fourVal = bundlePrices["4"] !== undefined ? bundlePrices["4"] : "";
+
+  const rule = t.bundle_rule || { mode: "fixed_extra", extraTicketPrice: "" };
   const maxQ = Math.max(1, Math.min(50, Number(t.max_per_booking) || 1));
 
   const schedule = generateBundleSchedule({
     price: singlePrice,
     bundleEnabled: t.bundle_enabled,
-    twoTicketPrice: twoPrice,
+    twoTicketPrice: twoVal !== "" ? Number(twoVal) : null,
+    bundlePrices,
+    bundleRule: rule,
     maxPerBooking: maxQ,
-    bundlePrices: t.bundle_prices,
   });
 
-  const hasOverrides = Object.keys(t.bundle_prices || {}).length > 0;
+  const hasAbove4Overrides = Object.keys(bundlePrices).some((k) => Number(k) > 4);
   const validationErr = validateBundlePricing({
     price: singlePrice,
     bundleEnabled: Boolean(t.bundle_enabled),
-    twoTicketPrice: t.bundle_enabled ? twoPrice : null,
+    twoTicketPrice: t.bundle_enabled && twoVal !== "" ? Number(twoVal) : null,
     maxPerBooking: maxQ,
-    bundlePrices: t.bundle_prices,
+    bundlePrices,
+    bundleRule: rule,
   });
 
-  const setOverride = (qty, val) => {
-    const next = { ...(t.bundle_prices || {}) };
+  const setBundleQtyPrice = (qty, val) => {
+    const next = { ...bundlePrices };
     if (val === "" || val === null || val === undefined) {
       delete next[String(qty)];
     } else {
       next[String(qty)] = Number(val);
+    }
+    if (qty === 2) {
+      onUpdateMany({
+        bundle_prices: next,
+        two_ticket_price: val === "" ? "" : Number(val),
+      });
+    } else {
+      onUpdate("bundle_prices", next);
+    }
+  };
+
+  const resetAbove4Overrides = () => {
+    const next = {};
+    for (const [k, v] of Object.entries(bundlePrices)) {
+      if (Number(k) <= 4) next[k] = v;
     }
     onUpdate("bundle_prices", next);
   };
@@ -409,57 +451,124 @@ function TierBundlePricing({ t, index, onUpdate }) {
             data-testid={`tier-bundle-toggle-${index}`}
             onChange={(e) => {
               const enabled = e.target.checked;
-              onUpdate("bundle_enabled", enabled);
-              if (enabled && (t.two_ticket_price === "" || t.two_ticket_price === null)) {
-                onUpdate("two_ticket_price", singlePrice * 2);
+              if (enabled) {
+                const patch = { bundle_enabled: true };
+                if (twoVal === "") {
+                  patch.two_ticket_price = singlePrice * 2;
+                  patch.bundle_prices = { ...bundlePrices, "2": singlePrice * 2 };
+                }
+                onUpdateMany(patch);
+              } else {
+                onUpdate("bundle_enabled", false);
               }
             }}
           />
           Enable quantity bundle pricing
         </label>
-        {t.bundle_enabled && hasOverrides && (
+        {t.bundle_enabled && hasAbove4Overrides && (
           <button
             type="button"
-            onClick={() => onUpdate("bundle_prices", {})}
+            onClick={resetAbove4Overrides}
             className="text-xs underline underline-offset-4 text-mineral hover:text-ink inline-flex items-center gap-1"
             data-testid={`tier-bundle-reset-${index}`}
           >
-            <RotateCcw className="h-3 w-3" /> Reset manual overrides
+            <RotateCcw className="h-3 w-3" /> Reset 5+ overrides
           </button>
         )}
       </div>
 
       {t.bundle_enabled && (
         <div className="mt-4 space-y-4">
-          <div className="grid sm:grid-cols-3 gap-3 items-end">
-            <F label="1 Ticket Price (₹)">
+          {/* Separate inputs for 1, 2, 3, and 4 ticket bundles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <F label="1 Ticket (₹)">
               <input
                 className="field h-9 text-sm bg-surface"
                 type="number"
                 min="0"
                 step="1"
+                data-testid={`tier-one-price-${index}`}
                 value={t.price}
                 onChange={(e) => onUpdate("price", e.target.value)}
               />
             </F>
-            <F label="2 Tickets Bundle Price (₹)">
+            <F label="2 Tickets Bundle (₹)">
               <input
                 className="field h-9 text-sm bg-surface"
                 type="number"
                 min="0"
                 step="1"
-                required
+                placeholder={String(singlePrice * 2)}
                 data-testid={`tier-two-price-${index}`}
-                value={t.two_ticket_price}
-                onChange={(e) => onUpdate("two_ticket_price", e.target.value)}
+                value={twoVal}
+                onChange={(e) => setBundleQtyPrice(2, e.target.value)}
               />
             </F>
-            <div className="text-xs text-mineral pb-2">
-              <p className="font-medium text-ink">
-                Additional ticket: <span className="tabular">₹{additional.toLocaleString("en-IN")}</span>
-              </p>
-              <p className="mt-0.5">Formula: 2-ticket price + (qty − 2) × additional</p>
-            </div>
+            <F label="3 Tickets Bundle (₹)">
+              <input
+                className="field h-9 text-sm bg-surface"
+                type="number"
+                min="0"
+                step="1"
+                placeholder={String(schedule[2]?.price ?? "")}
+                data-testid={`tier-three-price-${index}`}
+                value={threeVal}
+                onChange={(e) => setBundleQtyPrice(3, e.target.value)}
+              />
+            </F>
+            <F label="4 Tickets Bundle (₹)">
+              <input
+                className="field h-9 text-sm bg-surface"
+                type="number"
+                min="0"
+                step="1"
+                placeholder={String(schedule[3]?.price ?? "")}
+                data-testid={`tier-four-price-${index}`}
+                value={fourVal}
+                onChange={(e) => setBundleQtyPrice(4, e.target.value)}
+              />
+            </F>
+          </div>
+
+          {/* Configurable pricing rule for quantities above 4 */}
+          <div className="grid sm:grid-cols-2 gap-3 bg-surface border hairline p-3 items-end">
+            <F label="Pricing rule for 5+ tickets (when not overridden)">
+              <select
+                className="field h-9 text-sm"
+                data-testid={`tier-rule-mode-${index}`}
+                value={rule.mode || "fixed_extra"}
+                onChange={(e) =>
+                  onUpdate("bundle_rule", {
+                    ...rule,
+                    mode: e.target.value,
+                  })
+                }
+              >
+                <option value="fixed_extra">4-ticket bundle + fixed price per extra ticket</option>
+                <option value="single_ticket">4-ticket bundle + 1-ticket price per extra ticket</option>
+                <option value="avg_four_rate">Proportional to 4-ticket bundle rate</option>
+              </select>
+            </F>
+            {(rule.mode || "fixed_extra") === "fixed_extra" && (
+              <F label="Extra ticket price above 4 (₹)">
+                <input
+                  className="field h-9 text-sm"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder={`Defaults to 1-ticket price (₹${singlePrice})`}
+                  data-testid={`tier-rule-extra-${index}`}
+                  value={rule.extraTicketPrice ?? ""}
+                  onChange={(e) =>
+                    onUpdate("bundle_rule", {
+                      ...rule,
+                      mode: "fixed_extra",
+                      extraTicketPrice: e.target.value,
+                    })
+                  }
+                />
+              </F>
+            )}
           </div>
 
           {validationErr && (
@@ -470,7 +579,7 @@ function TierBundlePricing({ t, index, onUpdate }) {
 
           <div>
             <p className="text-xs font-medium text-mineral mb-2">
-              Pricing preview &amp; manual overrides (1 to {maxQ} tickets)
+              Live pricing preview &amp; manual overrides (1 to {maxQ} tickets)
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {schedule.map((row) => (
@@ -485,36 +594,48 @@ function TierBundlePricing({ t, index, onUpdate }) {
                     </span>
                     <span className="block text-[11px] text-mineral tabular">
                       ₹{row.perTicket.toLocaleString("en-IN")}/ticket
-                      {row.isOverride ? " · Overridden" : row.quantity >= 2 ? " · Auto" : ""}
+                      {row.quantity === 1
+                        ? " · Base"
+                        : row.isOverride
+                        ? " · Configured"
+                        : " · Auto"}
                     </span>
                   </div>
-                  {row.quantity === 1 ? (
-                    <span className="tabular font-semibold">₹{row.price.toLocaleString("en-IN")}</span>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-mineral">₹</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        aria-label={`Price for ${row.quantity} tickets`}
-                        data-testid={`tier-${index}-bundle-price-${row.quantity}`}
-                        value={row.isOverride ? t.bundle_prices[String(row.quantity)] : row.price}
-                        onChange={(e) => setOverride(row.quantity, e.target.value)}
-                        className="field h-8 w-20 text-right text-sm tabular px-2"
-                      />
-                      {row.isOverride && (
-                        <button
-                          type="button"
-                          title="Reset to auto-calculated price"
-                          onClick={() => setOverride(row.quantity, "")}
-                          className="text-mineral hover:text-ink p-1"
-                        >
-                          <RotateCcw className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-mineral">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      aria-label={`Price for ${row.quantity} tickets`}
+                      data-testid={`tier-${index}-bundle-price-${row.quantity}`}
+                      value={
+                        row.quantity === 1
+                          ? t.price
+                          : row.isOverride
+                          ? bundlePrices[String(row.quantity)]
+                          : row.price
+                      }
+                      onChange={(e) => {
+                        if (row.quantity === 1) {
+                          onUpdate("price", e.target.value);
+                        } else {
+                          setBundleQtyPrice(row.quantity, e.target.value);
+                        }
+                      }}
+                      className="field h-8 w-20 text-right text-sm tabular px-2"
+                    />
+                    {row.quantity > 4 && row.isOverride && (
+                      <button
+                        type="button"
+                        title="Reset to auto-calculated price"
+                        onClick={() => setBundleQtyPrice(row.quantity, "")}
+                        className="text-mineral hover:text-ink p-1"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -568,6 +689,7 @@ function Tiers({ tiers, set }) {
             t={t}
             index={i}
             onUpdate={(k, v) => upMany(i, { [k]: v })}
+            onUpdateMany={(patch) => upMany(i, patch)}
           />
         </div>
       ))}
@@ -616,15 +738,18 @@ export default function EventEditor() {
     for (let i = 0; i < f.tiers.length; i++) {
       const t = f.tiers[i];
       const twoVal =
-        t.two_ticket_price !== "" && t.two_ticket_price !== null && t.two_ticket_price !== undefined
+        t.bundle_prices?.["2"] !== undefined && t.bundle_prices?.["2"] !== ""
+          ? Number(t.bundle_prices["2"])
+          : t.two_ticket_price !== "" && t.two_ticket_price !== null && t.two_ticket_price !== undefined
           ? Number(t.two_ticket_price)
-          : Number(t.price) * 2;
+          : null;
       const pricingErr = validateBundlePricing({
         price: Number(t.price),
         bundleEnabled: Boolean(t.bundle_enabled),
         twoTicketPrice: t.bundle_enabled ? twoVal : null,
         maxPerBooking: Number(t.max_per_booking),
         bundlePrices: t.bundle_prices,
+        bundleRule: t.bundle_rule,
       });
       if (pricingErr) {
         toast.error(`${t.name || `Tier ${i + 1}`}: ${pricingErr}`);

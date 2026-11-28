@@ -1,5 +1,12 @@
+export type BundleAbove4Mode = "fixed_extra" | "avg_four_rate" | "single_ticket";
+
+export interface BundleRuleConfig {
+  mode: BundleAbove4Mode;
+  extraTicketPrice?: number | null; // in paise (or rupees in UI)
+}
+
 export interface BundleTierLike {
-  price: number; // in paise (or consistent unit)
+  price: number; // 1-ticket price in paise (or consistent unit)
   maxPerBooking?: number;
   max_per_booking?: number;
   bundleEnabled?: boolean;
@@ -8,6 +15,8 @@ export interface BundleTierLike {
   two_ticket_price?: number | null;
   bundlePrices?: unknown;
   bundle_prices?: unknown;
+  bundleRule?: unknown;
+  bundle_rule?: unknown;
 }
 
 export interface BundlePriceEntry {
@@ -18,7 +27,7 @@ export interface BundlePriceEntry {
 }
 
 /**
- * Normalizes a raw overrides map into `{ [quantityString]: nonNegativeInt }`.
+ * Normalizes a raw bundle prices / overrides map into `{ [quantityString]: nonNegativeInt }`.
  */
 export function normalizeBundleOverrides(raw: unknown): Record<string, number> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -36,22 +45,63 @@ export function normalizeBundleOverrides(raw: unknown): Record<string, number> {
 }
 
 /**
- * Additional ticket price = Two-ticket price - One-ticket price.
+ * Normalizes the configurable rule for quantities > 4.
  */
-export function calculateAdditionalTicketPrice(
-  oneTicketPrice: number,
-  twoTicketPrice: number
-): number {
-  return Math.round(twoTicketPrice) - Math.round(oneTicketPrice);
+export function normalizeBundleRule(raw: unknown): BundleRuleConfig {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { mode: "fixed_extra", extraTicketPrice: null };
+  }
+  const r = raw as Record<string, unknown>;
+  const rawMode = String(r.mode || "fixed_extra");
+  const mode: BundleAbove4Mode =
+    rawMode === "avg_four_rate" || rawMode === "single_ticket" || rawMode === "fixed_extra"
+      ? rawMode
+      : "fixed_extra";
+  const rawExtra = r.extraTicketPrice ?? r.extra_ticket_price;
+  const extraTicketPrice =
+    rawExtra !== null && rawExtra !== undefined && String(rawExtra) !== "" && Number.isFinite(Number(rawExtra)) && Number(rawExtra) >= 0
+      ? Math.round(Number(rawExtra))
+      : null;
+  return { mode, extraTicketPrice };
+}
+
+/**
+ * Resolves the effective prices for quantities 1..4 without mutating saved values.
+ */
+function resolveBaseBundlePrices(tier: BundleTierLike) {
+  const one = Math.max(0, Math.round(Number(tier.price) || 0));
+  const prices = normalizeBundleOverrides(tier.bundlePrices ?? tier.bundle_prices);
+
+  const rawTwo = tier.twoTicketPrice ?? tier.two_ticket_price;
+  const two =
+    prices["2"] !== undefined
+      ? prices["2"]
+      : rawTwo !== null && rawTwo !== undefined && Number.isFinite(Number(rawTwo))
+      ? Math.max(0, Math.round(Number(rawTwo)))
+      : one * 2;
+
+  const three =
+    prices["3"] !== undefined
+      ? prices["3"]
+      : Math.max(0, two + Math.max(0, two - one));
+
+  const four =
+    prices["4"] !== undefined
+      ? prices["4"]
+      : Math.max(0, three + Math.max(0, two - one));
+
+  return { one, two, three, four, prices };
 }
 
 /**
  * Calculates total price for `quantity` tickets of a tier.
  *
- * Formula when bundle pricing is enabled:
- * - qty = 1: oneTicketPrice
- * - qty = 2: override["2"] ?? twoTicketPrice
- * - qty >= 3: override[qty] ?? (twoTicketPrice + (qty - 2) * (twoTicketPrice - oneTicketPrice))
+ * Priority:
+ * 1. When bundle pricing is disabled: `price * quantity`.
+ * 2. Quantity 1: `price` (1-ticket price).
+ * 3. Any explicitly saved price in `bundlePrices[qty]` ALWAYS takes priority.
+ * 4. Quantities 2, 3, 4 use their configured prices (or fallback if unset).
+ * 5. Quantities > 4 use `bundleRule` applied on top of the 4-ticket price.
  */
 export function calculateBundleQuantityPrice(
   tier: BundleTierLike,
@@ -61,36 +111,34 @@ export function calculateBundleQuantityPrice(
     return 0;
   }
 
-  const one = Math.max(0, Math.round(Number(tier.price) || 0));
   const enabled = Boolean(tier.bundleEnabled ?? tier.bundle_enabled);
+  const { one, two, three, four, prices } = resolveBaseBundlePrices(tier);
 
   if (!enabled) {
     return one * quantity;
   }
 
-  if (quantity === 1) {
-    return one;
+  if (quantity === 1) return one;
+  if (prices[String(quantity)] !== undefined) {
+    return prices[String(quantity)];
   }
+  if (quantity === 2) return two;
+  if (quantity === 3) return three;
+  if (quantity === 4) return four;
 
-  const overrides = normalizeBundleOverrides(
-    tier.bundlePrices ?? tier.bundle_prices
-  );
-  const rawTwo = tier.twoTicketPrice ?? tier.two_ticket_price;
-  const two =
-    rawTwo !== null && rawTwo !== undefined && Number.isFinite(Number(rawTwo))
-      ? Math.max(0, Math.round(Number(rawTwo)))
-      : one * 2;
-
-  if (quantity === 2) {
-    return overrides["2"] !== undefined ? overrides["2"] : two;
+  const rule = normalizeBundleRule(tier.bundleRule ?? tier.bundle_rule);
+  if (rule.mode === "avg_four_rate") {
+    return Math.max(0, Math.round((four / 4) * quantity));
   }
-
-  if (overrides[String(quantity)] !== undefined) {
-    return overrides[String(quantity)];
+  if (rule.mode === "single_ticket") {
+    return Math.max(0, four + (quantity - 4) * one);
   }
-
-  const additional = two - one;
-  return Math.max(0, two + (quantity - 2) * additional);
+  // fixed_extra
+  const extra =
+    rule.extraTicketPrice !== null && rule.extraTicketPrice !== undefined
+      ? rule.extraTicketPrice
+      : one;
+  return Math.max(0, four + (quantity - 4) * extra);
 }
 
 /**
@@ -129,6 +177,7 @@ export function validateBundlePricing(params: {
   twoTicketPrice?: number | null;
   maxPerBooking: number;
   bundlePrices?: unknown;
+  bundleRule?: unknown;
 }): string | null {
   if (!Number.isFinite(params.price) || params.price < 0) {
     return "Single ticket price must be 0 or greater.";
@@ -151,16 +200,11 @@ export function validateBundlePricing(params: {
   }
 
   if (
-    params.twoTicketPrice === null ||
-    params.twoTicketPrice === undefined ||
-    !Number.isFinite(params.twoTicketPrice) ||
-    params.twoTicketPrice < 0
+    params.twoTicketPrice !== null &&
+    params.twoTicketPrice !== undefined &&
+    (!Number.isFinite(params.twoTicketPrice) || params.twoTicketPrice < 0)
   ) {
     return "Two-ticket bundle price must be 0 or greater.";
-  }
-
-  if (params.twoTicketPrice < params.price) {
-    return "Two-ticket bundle price cannot be less than the single ticket price.";
   }
 
   if (params.bundlePrices && typeof params.bundlePrices === "object" && !Array.isArray(params.bundlePrices)) {
@@ -173,6 +217,14 @@ export function validateBundlePricing(params: {
       if (!Number.isFinite(val) || val < 0) {
         return `Bundle price for ${qty} tickets must be 0 or greater.`;
       }
+    }
+  }
+
+  if (params.bundleRule && typeof params.bundleRule === "object" && !Array.isArray(params.bundleRule)) {
+    const r = params.bundleRule as Record<string, unknown>;
+    const extra = r.extraTicketPrice ?? r.extra_ticket_price;
+    if (extra !== null && extra !== undefined && String(extra) !== "" && (!Number.isFinite(Number(extra)) || Number(extra) < 0)) {
+      return "Extra ticket price for quantities above 4 must be 0 or greater.";
     }
   }
 

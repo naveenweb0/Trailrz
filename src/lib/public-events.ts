@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { availability, remaining } from "./inventory";
-import { normalizeBundleOverrides } from "./pricing";
+import { normalizeBundleOverrides, normalizeBundleRule } from "./pricing";
 
 export function tierPublic(t: any) {
   const r = remaining(t);
@@ -19,6 +19,7 @@ export function tierPublic(t: any) {
     bundle_enabled: Boolean(t.bundleEnabled),
     two_ticket_price: t.twoTicketPrice ?? null,
     bundle_prices: normalizeBundleOverrides(t.bundlePrices),
+    bundle_rule: normalizeBundleRule(t.bundleRule),
     max_per_booking: t.maxPerBooking ?? 10,
     availability: avail,
     remaining: avail === "limited" ? r : null,

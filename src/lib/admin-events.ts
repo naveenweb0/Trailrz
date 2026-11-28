@@ -8,6 +8,7 @@ import { ApiError } from "./api-response";
 import { findIndianCity } from "./indian-cities";
 import {
   normalizeBundleOverrides,
+  normalizeBundleRule,
   validateBundlePricing,
 } from "./pricing";
 
@@ -19,6 +20,7 @@ export interface TierInput {
   bundle_enabled?: boolean;
   two_ticket_price?: number | null; // in rupees from API, will convert to paise
   bundle_prices?: Record<string, number>; // in rupees from API, will convert to paise
+  bundle_rule?: { mode?: string; extra_ticket_price?: number | null; extraTicketPrice?: number | null }; // extra_ticket_price in rupees
   capacity: number;
   max_per_booking?: number;
   sale_starts_at?: string | null;
@@ -88,6 +90,7 @@ export async function withInventory(e: any) {
     bundle_enabled: Boolean(t.bundleEnabled),
     two_ticket_price: t.twoTicketPrice ?? null, // paise
     bundle_prices: normalizeBundleOverrides(t.bundlePrices), // paise
+    bundle_rule: normalizeBundleRule(t.bundleRule), // { mode, extraTicketPrice (paise) }
     capacity: t.capacity,
     sold: t.sold,
     reserved: t.reserved,
@@ -173,20 +176,33 @@ export async function saveTiers(eventId: string, tiers: TierInput[]) {
         }
       }
     }
+    const effectiveTwoTicketPriceInPaise =
+      rawOverridesPaise["2"] !== undefined ? rawOverridesPaise["2"] : twoTicketPriceInPaise;
+
+    const rawRuleExtra = t.bundle_rule?.extraTicketPrice ?? t.bundle_rule?.extra_ticket_price;
+    const bundleRulePaise = normalizeBundleRule({
+      mode: t.bundle_rule?.mode || "fixed_extra",
+      extraTicketPrice:
+        rawRuleExtra !== null && rawRuleExtra !== undefined && String(rawRuleExtra) !== ""
+          ? Math.round(Number(rawRuleExtra) * 100)
+          : null,
+    });
     const maxPerBooking = Number(t.max_per_booking ?? 10);
 
     const pricingErr = validateBundlePricing({
       price: priceInPaise,
       bundleEnabled,
-      twoTicketPrice: twoTicketPriceInPaise,
+      twoTicketPrice: effectiveTwoTicketPriceInPaise,
       maxPerBooking,
       bundlePrices: rawOverridesPaise,
+      bundleRule: bundleRulePaise,
     });
     if (pricingErr) {
       throw new ApiError(422, `${t.name || "Ticket tier"}: ${pricingErr}`);
     }
 
     const bundlePrices = bundleEnabled ? normalizeBundleOverrides(rawOverridesPaise) : {};
+    const bundleRule = bundleEnabled ? bundleRulePaise : { mode: "fixed_extra", extraTicketPrice: null };
     const saleStartsAt = t.sale_starts_at ? new Date(t.sale_starts_at) : null;
     const saleEndsAt = t.sale_ends_at ? new Date(t.sale_ends_at) : null;
 
@@ -206,8 +222,9 @@ export async function saveTiers(eventId: string, tiers: TierInput[]) {
           description: t.description || "",
           price: priceInPaise,
           bundleEnabled,
-          twoTicketPrice: twoTicketPriceInPaise,
+          twoTicketPrice: effectiveTwoTicketPriceInPaise,
           bundlePrices,
+          bundleRule: bundleRule as any,
           capacity: t.capacity,
           maxPerBooking,
           saleStartsAt,
@@ -228,8 +245,9 @@ export async function saveTiers(eventId: string, tiers: TierInput[]) {
           description: t.description || "",
           price: priceInPaise,
           bundleEnabled,
-          twoTicketPrice: twoTicketPriceInPaise,
+          twoTicketPrice: effectiveTwoTicketPriceInPaise,
           bundlePrices,
+          bundleRule: bundleRule as any,
           capacity: t.capacity,
           maxPerBooking,
           saleStartsAt,

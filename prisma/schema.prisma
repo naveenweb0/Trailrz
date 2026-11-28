@@ -108,6 +108,7 @@ model TicketType {
   bundleEnabled  Boolean   @default(false) @map("bundle_enabled")
   twoTicketPrice Int?      @map("two_ticket_price") // in paise
   bundlePrices   Json      @default("{}") @map("bundle_prices") // manual quantity overrides in paise
+  bundleRule     Json      @default("{}") @map("bundle_rule") // rule for quantities > 4
   capacity       Int
   sold          Int       @default(0)
   reserved      Int       @default(0)
